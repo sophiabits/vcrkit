@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "definitions": [
+    {
+      "scope": "https://api.example.com",
+      "method": "POST",
+      "path": "/jobs",
+      "body": {
+        "idempotencyKey": "3d90d300-4b1f-4b5b-9de8-d2088cda9428",
+        "task": "generate-quarterly-report"
+      },
+      "status": 202,
+      "response": {
+        "accepted": true
+      },
+      "reqheaders": {
+        "content-type": "application/json"
+      }
+    }
+  ]
+}

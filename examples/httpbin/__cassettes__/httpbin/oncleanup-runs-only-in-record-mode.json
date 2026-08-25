@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "definitions": [
+    {
+      "scope": "https://httpbin.org:443",
+      "method": "GET",
+      "path": "/status/200",
+      "status": 200,
+      "response": "",
+      "reqheaders": {
+        "x-api-key": "{{apiKey}}"
+      }
+    }
+  ]
+}

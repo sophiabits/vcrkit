@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "definitions": [
+    {
+      "scope": "https://httpbin.org:443",
+      "method": "POST",
+      "path": "/anything",
+      "body": {
+        "cardNumber": "<!redact!body:cardNumber!0>",
+        "amount": 100
+      },
+      "status": 200,
+      "response": {
+        "json": {
+          "cardNumber": "4242424242424242",
+          "amount": 100
+        }
+      },
+      "reqheaders": {
+        "content-type": "application/json",
+        "x-api-key": "{{apiKey}}"
+      }
+    }
+  ]
+}

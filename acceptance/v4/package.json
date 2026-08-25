@@ -1,0 +1,19 @@
+{
+  "name": "@bside-acceptance/v4",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bside replay"
+  },
+  "dependencies": {
+    "bside": "workspace:*",
+    "vite": "^6.0.0",
+    "vitest": "^4.0.0"
+  },
+  "dependenciesMeta": {
+    "bside": {
+      "injected": true
+    }
+  }
+}

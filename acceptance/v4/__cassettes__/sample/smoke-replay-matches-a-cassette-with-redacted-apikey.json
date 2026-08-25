@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "definitions": [
+    {
+      "scope": "https://api.example.com",
+      "method": "GET",
+      "path": "/whoami",
+      "status": 200,
+      "response": { "ok": true },
+      "reqheaders": { "x-api-key": "{{apiKey}}" }
+    }
+  ]
+}

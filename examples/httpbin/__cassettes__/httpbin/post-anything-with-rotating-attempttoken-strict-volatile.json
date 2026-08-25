@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "definitions": [
+    {
+      "scope": "https://httpbin.org:443",
+      "method": "POST",
+      "path": "/anything",
+      "body": {
+        "attemptToken": "<!volatile!body:attemptToken!0>",
+        "op": "charge"
+      },
+      "status": 200,
+      "response": {
+        "args": {},
+        "data": "{\"attemptToken\":\"58ecba94-a930-4193-a573-8c07a4cf862c\",\"op\":\"charge\"}",
+        "files": {},
+        "form": {},
+        "headers": {
+          "Accept": "*/*",
+          "Accept-Encoding": "br, gzip, deflate",
+          "Accept-Language": "*",
+          "Content-Length": "69",
+          "Content-Type": "application/json",
+          "Host": "httpbin.org",
+          "Sec-Fetch-Mode": "cors",
+          "User-Agent": "node",
+          "X-Api-Key": "{{apiKey}}"
+        },
+        "json": {
+          "attemptToken": "58ecba94-a930-4193-a573-8c07a4cf862c",
+          "op": "charge"
+        },
+        "method": "POST",
+        "origin": "<!redact!response:origin!0>",
+        "url": "https://httpbin.org/anything"
+      },
+      "rawHeaders": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "*",
+        "content-length": "726",
+        "content-type": "application/json"
+      },
+      "reqheaders": {
+        "content-type": "application/json",
+        "x-api-key": "{{apiKey}}"
+      },
+      "responseIsBinary": false
+    },
+    {
+      "scope": "https://httpbin.org:443",
+      "method": "POST",
+      "path": "/anything",
+      "body": {
+        "attemptToken": "<!volatile!body:attemptToken!0>",
+        "op": "charge"
+      },
+      "status": 200,
+      "response": {
+        "args": {},
+        "data": "{\"attemptToken\":\"58ecba94-a930-4193-a573-8c07a4cf862c\",\"op\":\"charge\"}",
+        "files": {},
+        "form": {},
+        "headers": {
+          "Accept": "*/*",
+          "Accept-Encoding": "br, gzip, deflate",
+          "Accept-Language": "*",
+          "Content-Length": "69",
+          "Content-Type": "application/json",
+          "Host": "httpbin.org",
+          "Sec-Fetch-Mode": "cors",
+          "User-Agent": "node",
+          "X-Api-Key": "{{apiKey}}"
+        },
+        "json": {
+          "attemptToken": "58ecba94-a930-4193-a573-8c07a4cf862c",
+          "op": "charge"
+        },
+        "method": "POST",
+        "origin": "<!redact!response:origin!0>",
+        "url": "https://httpbin.org/anything"
+      },
+      "rawHeaders": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "*",
+        "content-length": "726",
+        "content-type": "application/json"
+      },
+      "reqheaders": {
+        "content-type": "application/json",
+        "x-api-key": "{{apiKey}}"
+      },
+      "responseIsBinary": false
+    },
+    {
+      "scope": "https://httpbin.org:443",
+      "method": "POST",
+      "path": "/anything",
+      "body": {
+        "attemptToken": "<!volatile!body:attemptToken!1>",
+        "op": "charge"
+      },
+      "status": 200,
+      "response": {
+        "args": {},
+        "data": "{\"attemptToken\":\"c2d8d1a5-db01-48ee-9310-683f79f39af9\",\"op\":\"charge\"}",
+        "files": {},
+        "form": {},
+        "headers": {
+          "Accept": "*/*",
+          "Accept-Encoding": "br, gzip, deflate",
+          "Accept-Language": "*",
+          "Content-Length": "69",
+          "Content-Type": "application/json",
+          "Host": "httpbin.org",
+          "Sec-Fetch-Mode": "cors",
+          "User-Agent": "node",
+          "X-Api-Key": "{{apiKey}}"
+        },
+        "json": {
+          "attemptToken": "c2d8d1a5-db01-48ee-9310-683f79f39af9",
+          "op": "charge"
+        },
+        "method": "POST",
+        "origin": "<!redact!response:origin!0>",
+        "url": "https://httpbin.org/anything"
+      },
+      "rawHeaders": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "*",
+        "content-length": "726",
+        "content-type": "application/json"
+      },
+      "reqheaders": {
+        "content-type": "application/json",
+        "x-api-key": "{{apiKey}}"
+      },
+      "responseIsBinary": false
+    }
+  ]
+}
