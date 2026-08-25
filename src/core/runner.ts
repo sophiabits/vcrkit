@@ -168,9 +168,9 @@ export async function replayCassette(
       // are visible to later ones, so the bijection holds across requests.
       const store = new OrdinalStore();
       const headerFieldsByPath = new Map<string, VolatileField>();
-      for (const f of volatileFields) {
-        if (f.kind === "header") {
-          headerFieldsByPath.set(f.path, f);
+      for (const field of volatileFields) {
+        if (field.kind === "header") {
+          headerFieldsByPath.set(field.path, field);
         }
       }
       const defs = cassette.definitions.map((def) => {
@@ -384,15 +384,6 @@ function parseMaybeJson(s: string | undefined): unknown {
  * canonical ordinal token gets replaced with a function matcher that does the
  * same first-appearance relabeling as the body matcher. The store is
  * shared so bijection holds across body + header bindings.
- *
- * Headers whose cassette value is a layer-1 placeholder (`{{name}}`) are kept
- * as-is so plain-equality matching survives.
- *
- * Binding is eager (no snapshot/commit). A failed interceptor evaluation may
- * leave a header→ord binding in the store, but it can't cause an *incorrect*
- * later match: a divergent replay either matches via that binding (correctly)
- * or triggers a bijection conflict that surfaces as a "no match for request"
- * — the right outcome either way.
  */
 function rewriteReqheaders(
   reqheaders: Record<string, string | string[]> | undefined,

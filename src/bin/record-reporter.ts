@@ -145,15 +145,15 @@ function walk(dir: string, visit: (path: string) => void): void {
       continue;
     }
     const full = join(dir, name);
-    let s;
+    let stats;
     try {
-      s = statSync(full);
+      stats = statSync(full);
     } catch {
       continue;
     }
-    if (s.isDirectory()) {
+    if (stats.isDirectory()) {
       walk(full, visit);
-    } else if (s.isFile()) {
+    } else if (stats.isFile()) {
       visit(full);
     }
   }
@@ -294,16 +294,16 @@ function diffNormalized(
   added: number;
   removed: number;
 } {
-  const a = normalize(oldContent).split("\n");
-  const b = normalize(newContent).split("\n");
+  const oldLines = normalize(oldContent).split("\n");
+  const newLines = normalize(newContent).split("\n");
   // LCS length — for ~hundred-line cassettes this is O(n*m) and trivial.
-  const n = a.length;
-  const m = b.length;
-  let prev = new Int32Array(m + 1);
-  let curr = new Int32Array(m + 1);
-  for (let i = 1; i <= n; i++) {
-    for (let j = 1; j <= m; j++) {
-      if (a[i - 1] === b[j - 1]) {
+  const oldLineCount = oldLines.length;
+  const newLineCount = newLines.length;
+  let prev = new Int32Array(newLineCount + 1);
+  let curr = new Int32Array(newLineCount + 1);
+  for (let i = 1; i <= oldLineCount; i++) {
+    for (let j = 1; j <= newLineCount; j++) {
+      if (oldLines[i - 1] === newLines[j - 1]) {
         curr[j] = prev[j - 1]! + 1;
       } else {
         curr[j] = Math.max(prev[j]!, curr[j - 1]!);
@@ -312,8 +312,8 @@ function diffNormalized(
     [prev, curr] = [curr, prev];
     curr.fill(0);
   }
-  const lcs = prev[m]!;
-  return { added: m - lcs, removed: n - lcs };
+  const lcs = prev[newLineCount]!;
+  return { added: newLineCount - lcs, removed: oldLineCount - lcs };
 }
 
 function countLines(s: string): number {
@@ -427,18 +427,18 @@ export interface FormatOptions {
  * under a `Request #2: GET /uuid` header rather than `definitions[1].…`.
  */
 export function formatRecordSummary(summary: RecordSummary, options: FormatOptions = {}): string {
-  const c = makePalette(options.color ?? detectColorSupport());
+  const palette = makePalette(options.color ?? detectColorSupport());
   const lines: string[] = [];
   const total = summary.cassettes.length;
   if (total === 0) {
-    return `${c.bold("bside record")}: no cassettes written.\n`;
+    return `${palette.bold("bside record")}: no cassettes written.\n`;
   }
 
-  lines.push(`${c.bold("bside record")}: ${total} cassette${total === 1 ? "" : "s"}`);
+  lines.push(`${palette.bold("bside record")}: ${total} cassette${total === 1 ? "" : "s"}`);
   for (const entry of summary.cassettes) {
-    lines.push(formatEntryHeader(entry, c));
+    lines.push(formatEntryHeader(entry, palette));
     if (entry.fields && entry.fields.length > 0) {
-      lines.push(...formatGroupedFields(entry, c));
+      lines.push(...formatGroupedFields(entry, palette));
     }
   }
 
@@ -449,67 +449,69 @@ export function formatRecordSummary(summary: RecordSummary, options: FormatOptio
   if (summary.failedTests.length > 0) {
     lines.push("");
     lines.push(
-      `  ${c.red("✗")} ${c.bold(`${summary.failedTests.length} test${summary.failedTests.length === 1 ? "" : "s"} failed`)} during record${c.dim(" — cassettes for failed tests may be incomplete or stale")}`,
+      `  ${palette.red("✗")} ${palette.bold(`${summary.failedTests.length} test${summary.failedTests.length === 1 ? "" : "s"} failed`)} during record${palette.dim(" — cassettes for failed tests may be incomplete or stale")}`,
     );
     for (const t of summary.failedTests) {
-      lines.push(`      ${c.red("✗")} ${t.name}`);
+      lines.push(`      ${palette.red("✗")} ${t.name}`);
     }
   }
 
   lines.push("");
   const redactedSuffix =
     summary.totals.redacted > 0
-      ? `, ${c.bold(String(summary.totals.redacted))} secret${summary.totals.redacted === 1 ? "" : "s"} redacted`
+      ? `, ${palette.bold(String(summary.totals.redacted))} secret${summary.totals.redacted === 1 ? "" : "s"} redacted`
       : "";
   const failedSuffix =
-    summary.totals.failed > 0 ? `, ${c.red(c.bold(`${summary.totals.failed} failed`))}` : "";
+    summary.totals.failed > 0
+      ? `, ${palette.red(palette.bold(`${summary.totals.failed} failed`))}`
+      : "";
   const orphanedSuffix =
     summary.totals.orphaned > 0
-      ? `, ${c.yellow(c.bold(`${summary.totals.orphaned} orphaned`))}`
+      ? `, ${palette.yellow(palette.bold(`${summary.totals.orphaned} orphaned`))}`
       : "";
   lines.push(
-    `  ${c.bold(String(summary.totals.created))} created, ${c.bold(
+    `  ${palette.bold(String(summary.totals.created))} created, ${palette.bold(
       String(summary.totals.changed),
-    )} changed, ${c.bold(String(summary.totals.unchanged))} unchanged${orphanedSuffix}${redactedSuffix}${failedSuffix}`,
+    )} changed, ${palette.bold(String(summary.totals.unchanged))} unchanged${orphanedSuffix}${redactedSuffix}${failedSuffix}`,
   );
   return `${lines.join("\n")}\n`;
 }
 
-function formatEntryHeader(entry: CassetteEntry, c: Palette): string {
-  const failTag = entry.testFailed ? `  ${c.red("(test failed)")}` : "";
+function formatEntryHeader(entry: CassetteEntry, palette: Palette): string {
+  const failTag = entry.testFailed ? `  ${palette.red("(test failed)")}` : "";
   // When the test failed, the marker becomes ✗ — overriding the +/~/(blank)
   // glyph so a stale cassette can't masquerade as a benign "unchanged".
   const marker = entry.testFailed
-    ? c.red("✗")
+    ? palette.red("✗")
     : entry.status === "created"
-      ? c.green("+")
+      ? palette.green("+")
       : entry.status === "changed"
-        ? c.yellow("~")
+        ? palette.yellow("~")
         : entry.status === "orphaned"
-          ? c.yellow("?")
+          ? palette.yellow("?")
           : " ";
-  const name = entry.testFailed ? c.bold(entry.relPath) : undefined;
+  const name = entry.testFailed ? palette.bold(entry.relPath) : undefined;
   switch (entry.status) {
     case "created": {
-      const suffix = c.dim(
+      const suffix = palette.dim(
         `created (${entry.addedLines} line${entry.addedLines === 1 ? "" : "s"})`,
       );
-      return `  ${marker} ${name ?? c.bold(entry.relPath)}  ${suffix}${failTag}`;
+      return `  ${marker} ${name ?? palette.bold(entry.relPath)}  ${suffix}${failTag}`;
     }
     case "changed": {
-      const stats = `${c.green(`+${entry.addedLines}`)} ${c.red(`-${entry.removedLines}`)} lines`;
+      const stats = `${palette.green(`+${entry.addedLines}`)} ${palette.red(`-${entry.removedLines}`)} lines`;
       const overflow =
         entry.totalFieldChanges !== undefined && entry.totalFieldChanges > FIELD_DIFF_THRESHOLD
-          ? c.dim(` (${entry.totalFieldChanges} field changes — too many to list)`)
+          ? palette.dim(` (${entry.totalFieldChanges} field changes — too many to list)`)
           : "";
-      return `  ${marker} ${name ?? c.bold(entry.relPath)}  ${stats}${overflow}${failTag}`;
+      return `  ${marker} ${name ?? palette.bold(entry.relPath)}  ${stats}${overflow}${failTag}`;
     }
     case "unchanged":
       return entry.testFailed
-        ? `  ${marker} ${c.bold(entry.relPath)}  ${c.dim("unchanged")}${failTag}`
-        : `    ${c.dim(entry.relPath)}  ${c.dim("unchanged")}`;
+        ? `  ${marker} ${palette.bold(entry.relPath)}  ${palette.dim("unchanged")}${failTag}`
+        : `    ${palette.dim(entry.relPath)}  ${palette.dim("unchanged")}`;
     case "orphaned":
-      return `  ${marker} ${c.bold(entry.relPath)}  ${c.yellow("orphaned — no matching test ran")}`;
+      return `  ${marker} ${palette.bold(entry.relPath)}  ${palette.yellow("orphaned — no matching test ran")}`;
   }
 }
 
@@ -526,7 +528,7 @@ interface GroupedChanges {
  * can print `Request #2: GET /uuid` once per group instead of stuttering
  * `definitions[1].…` on every line.
  */
-function formatGroupedFields(entry: CassetteEntry, c: Palette): string[] {
+function formatGroupedFields(entry: CassetteEntry, palette: Palette): string[] {
   const groups: GroupedChanges[] = [];
   let current: GroupedChanges | undefined;
   for (const change of entry.fields ?? []) {
@@ -546,27 +548,31 @@ function formatGroupedFields(entry: CassetteEntry, c: Palette): string[] {
       const def = entry.definitions?.[group.definitionIndex];
       const label =
         def !== undefined
-          ? `${c.bold(def.method.toUpperCase())} ${def.path}`
-          : c.dim("(unknown request)");
-      out.push(`      ${c.cyan(`Request #${group.definitionIndex + 1}`)}: ${label}`);
+          ? `${palette.bold(def.method.toUpperCase())} ${def.path}`
+          : palette.dim("(unknown request)");
+      out.push(`      ${palette.cyan(`Request #${group.definitionIndex + 1}`)}: ${label}`);
     }
     for (const { change, subPath } of group.changes) {
       const indent = group.definitionIndex !== undefined ? "        " : "      ";
-      out.push(`${indent}${formatFieldChange(change, subPath, c)}`);
+      out.push(`${indent}${formatFieldChange(change, subPath, palette)}`);
     }
   }
   return out;
 }
 
-function formatFieldChange(change: CassetteFieldChange, displayPath: string, c: Palette): string {
-  const path = c.dim(displayPath);
+function formatFieldChange(
+  change: CassetteFieldChange,
+  displayPath: string,
+  palette: Palette,
+): string {
+  const path = palette.dim(displayPath);
   switch (change.kind) {
     case "added":
-      return `${c.green("+")} ${path}: ${c.green(formatValue(change.after))}`;
+      return `${palette.green("+")} ${path}: ${palette.green(formatValue(change.after))}`;
     case "removed":
-      return `${c.red("-")} ${path}: ${c.red(formatValue(change.before))}`;
+      return `${palette.red("-")} ${path}: ${palette.red(formatValue(change.before))}`;
     case "changed":
-      return `${c.yellow("~")} ${path}: ${c.red(formatValue(change.before))} → ${c.green(
+      return `${palette.yellow("~")} ${path}: ${palette.red(formatValue(change.before))} → ${palette.green(
         formatValue(change.after),
       )}`;
   }

@@ -48,7 +48,6 @@ export interface VolatileField {
    */
   path: string;
   mode: "strict" | "loose";
-  /** Cosmetic — picks the token prefix in cassettes. */
   source: "volatile" | "redact";
 }
 
@@ -67,35 +66,35 @@ export const BUILT_IN_REDACT_HEADERS: ReadonlyArray<string> = [
 
 export function parseVolatileConfig(cfg: VolatileConfig | undefined): VolatileField[] {
   const out: VolatileField[] = [];
-  for (const e of cfg?.request?.headers ?? []) {
+  for (const entry of cfg?.request?.headers ?? []) {
     out.push({
       kind: "header",
-      path: entryName(e).toLowerCase(),
-      mode: typeof e === "string" ? "strict" : e.match,
+      path: entryName(entry).toLowerCase(),
+      mode: typeof entry === "string" ? "strict" : entry.match,
       source: "volatile",
     });
   }
-  for (const e of cfg?.request?.body ?? []) {
+  for (const entry of cfg?.request?.body ?? []) {
     out.push({
       kind: "body",
-      path: entryName(e),
-      mode: typeof e === "string" ? "strict" : e.match,
+      path: entryName(entry),
+      mode: typeof entry === "string" ? "strict" : entry.match,
       source: "volatile",
     });
   }
-  for (const e of cfg?.response?.headers ?? []) {
+  for (const entry of cfg?.response?.headers ?? []) {
     out.push({
       kind: "response-header",
-      path: entryName(e).toLowerCase(),
-      mode: typeof e === "string" ? "strict" : e.match,
+      path: entryName(entry).toLowerCase(),
+      mode: typeof entry === "string" ? "strict" : entry.match,
       source: "volatile",
     });
   }
-  for (const e of cfg?.response?.body ?? []) {
+  for (const entry of cfg?.response?.body ?? []) {
     out.push({
       kind: "response",
-      path: entryName(e),
-      mode: typeof e === "string" ? "strict" : e.match,
+      path: entryName(entry),
+      mode: typeof entry === "string" ? "strict" : entry.match,
       source: "volatile",
     });
   }
@@ -150,8 +149,8 @@ export function compileVolatileFields(
   return [...fieldsByIdentity.values()];
 }
 
-function entryName(e: VolatileEntry): string {
-  return typeof e === "string" ? e : e.name;
+function entryName(entry: VolatileEntry): string {
+  return typeof entry === "string" ? entry : entry.name;
 }
 
 const TOKEN_RE = /^<!(volatile|redact)!([^:]+):([^!]+)!(\d+)>$/;
@@ -319,6 +318,7 @@ function walkRewrite(
   if (Array.isArray(value)) {
     return value.map((v) => walkRewrite(v, field, store, kind));
   }
+
   if (isPlainObject(value)) {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
@@ -331,6 +331,7 @@ function walkRewrite(
     }
     return out;
   }
+
   if (typeof value === "string") {
     try {
       const parsed: unknown = JSON.parse(value);
@@ -342,6 +343,7 @@ function walkRewrite(
       // not JSON; leave as-is
     }
   }
+
   return value;
 }
 

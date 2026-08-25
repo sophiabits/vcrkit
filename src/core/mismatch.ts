@@ -137,19 +137,19 @@ function similarityOf(def: NockDefinition, method: string, path: string): Simila
 function diffAll(def: NockDefinition, request: ActualRequest): FieldDiff[] {
   const diffs: FieldDiff[] = [];
 
-  const recMethod = (def.method ?? "GET").toUpperCase();
-  const reqMethod = request.method.toUpperCase();
-  if (recMethod !== reqMethod) {
-    diffs.push({ kind: "method", recorded: recMethod, actual: reqMethod });
+  const recordedMethod = (def.method ?? "GET").toUpperCase();
+  const actualMethod = request.method.toUpperCase();
+  if (recordedMethod !== actualMethod) {
+    diffs.push({ kind: "method", recorded: recordedMethod, actual: actualMethod });
   }
 
-  const recUrl = `${def.scope ?? ""}${def.path ?? ""}`;
-  if (stripQuery(recUrl) !== stripQuery(request.url)) {
-    diffs.push({ kind: "url", recorded: recUrl, actual: request.url });
+  const recordedUrl = `${def.scope ?? ""}${def.path ?? ""}`;
+  if (stripQuery(recordedUrl) !== stripQuery(request.url)) {
+    diffs.push({ kind: "url", recorded: recordedUrl, actual: request.url });
   } else {
     // Paths match modulo the query string — surface per-parameter diffs
     // rather than going silent on what's actually different.
-    diffQuery(extractQuery(recUrl), extractQuery(request.url), diffs);
+    diffQuery(extractQuery(recordedUrl), extractQuery(request.url), diffs);
   }
 
   diffBodies(parseBody(def.body), parseBody(request.body), "", diffs);
@@ -192,20 +192,19 @@ function diffQuery(
 ): void {
   // Group by name so repeated-key queries (`?tag=a&tag=b`) compare positionally
   // within their group rather than collapsing.
-  const recByName = groupByName(recorded);
-  const actByName = groupByName(actual);
-  const names = new Set([...recByName.keys(), ...actByName.keys()]);
+  const recordedByName = groupByName(recorded);
+  const actualByName = groupByName(actual);
+  const names = new Set([...recordedByName.keys(), ...actualByName.keys()]);
   for (const name of names) {
-    const recValues = recByName.get(name) ?? [];
-    const actValues = actByName.get(name) ?? [];
-    const len = Math.max(recValues.length, actValues.length);
+    const recordedValues = recordedByName.get(name) ?? [];
+    const actualValues = actualByName.get(name) ?? [];
+    const len = Math.max(recordedValues.length, actualValues.length);
     for (let i = 0; i < len; i++) {
-      const r = recValues[i];
-      const a = actValues[i];
-      if (r === a) {
-        continue;
+      const recorded = recordedValues[i];
+      const actual = actualValues[i];
+      if (recorded !== actual) {
+        out.push({ kind: "query", name, recorded, actual });
       }
-      out.push({ kind: "query", name, recorded: r, actual: a });
     }
   }
 }

@@ -71,14 +71,14 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
   // which secret a scrub came from, so updating one secret's replay value
   // later requires a full re-record. Warn loudly at config time.
   const replayToSecrets = new Map<string, string[]>();
-  for (const [k, entry] of secretEntries) {
-    const replay = getReplayValue(entry, k);
-    replaySecrets[k] = replay;
+  for (const [secretKey, entry] of secretEntries) {
+    const replay = getReplayValue(entry, secretKey);
+    replaySecrets[secretKey] = replay;
     const list = replayToSecrets.get(replay);
     if (list) {
-      list.push(k);
+      list.push(secretKey);
     } else {
-      replayToSecrets.set(replay, [k]);
+      replayToSecrets.set(replay, [secretKey]);
     }
   }
   // Only warn when we're actually going to run vcr tests. Under bare `vitest
