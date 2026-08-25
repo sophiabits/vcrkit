@@ -256,7 +256,7 @@ function scrubString(input: string, rules: CompiledRules): WalkResult {
 function stripIgnoredHeaders(def: NockDefinition): NockDefinition {
   const next: NockDefinition = { ...def };
   if (def.reqheaders) {
-    const reqHeaders: Record<string, string | string[]> = {};
+    const reqHeaders: Record<string, string> = {};
     for (const [k, v] of Object.entries(def.reqheaders)) {
       if (!IGNORE_REQ_HEADERS.has(k.toLowerCase())) {
         reqHeaders[k] = v;

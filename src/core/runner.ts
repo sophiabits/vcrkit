@@ -379,6 +379,9 @@ function parseMaybeJson(s: string | undefined): unknown {
   }
 }
 
+type ReplayHeaderMatcher = string | ((value: string) => boolean);
+type ReplayRequestHeaders = Record<string, ReplayHeaderMatcher>;
+
 /**
  * On replay, a header configured as volatile/redact whose cassette value is a
  * canonical ordinal token gets replaced with a function matcher that does the
@@ -386,14 +389,14 @@ function parseMaybeJson(s: string | undefined): unknown {
  * shared so bijection holds across body + header bindings.
  */
 function rewriteReqheaders(
-  reqheaders: Record<string, string | string[]> | undefined,
+  reqheaders: Record<string, string> | undefined,
   fields: Map<string, VolatileField>,
   store: OrdinalStore,
-): Record<string, string | string[] | RegExp | ((value: string) => boolean)> | undefined {
+): ReplayRequestHeaders | undefined {
   if (!reqheaders) {
     return reqheaders;
   }
-  const out: Record<string, string | string[] | RegExp | ((value: string) => boolean)> = {};
+  const out: ReplayRequestHeaders = {};
   for (const [k, v] of Object.entries(reqheaders)) {
     const path = k.toLowerCase();
     const field = fields.get(path);

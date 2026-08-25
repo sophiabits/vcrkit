@@ -348,10 +348,10 @@ function walkRewrite(
 }
 
 function rewriteHeaderField(
-  reqheaders: Record<string, string | string[]> | undefined,
+  reqheaders: Record<string, string> | undefined,
   field: VolatileField,
   store: OrdinalStore,
-): Record<string, string | string[]> | undefined {
+): Record<string, string> | undefined {
   if (!reqheaders) {
     return reqheaders;
   }
@@ -360,7 +360,7 @@ function rewriteHeaderField(
     return reqheaders;
   }
   const value = reqheaders[key];
-  if (typeof value !== "string") {
+  if (value === undefined) {
     return reqheaders;
   }
   // Layer-1 placeholder or an earlier canonical token — leave alone.

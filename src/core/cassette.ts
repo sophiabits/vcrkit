@@ -22,7 +22,7 @@ export interface NockDefinition {
   status?: number;
   body?: unknown;
   response?: unknown;
-  reqheaders?: Record<string, string | string[]>;
+  reqheaders?: Record<string, string>;
   rawHeaders?: string[];
   [key: string]: unknown;
 }
