@@ -3,6 +3,11 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "vcrkit/secrets": ["./src/secrets.ts"],
+      "vcrkit/vitest": ["./src/vitest.ts"]
+    },
     "lib": ["ES2022"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
