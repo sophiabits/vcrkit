@@ -163,10 +163,8 @@ export async function replayCassette(
   // can't leak `disableNetConnect()` or a `no match` listener into the next
   // test. Without this, the next replay in the same process runs with the
   // network dead and a stale handler still subscribed.
-  let listenerAttached = false;
   try {
     nock.emitter.on("no match", onNoMatch);
-    listenerAttached = true;
 
     if (volatileFields.length > 0) {
       // Shared replay store: ordinals committed by one interceptor's matcher
@@ -210,9 +208,7 @@ export async function replayCassette(
       bodyError = err;
     }
   } finally {
-    if (listenerAttached) {
-      nock.emitter.off("no match", onNoMatch);
-    }
+    nock.emitter.off("no match", onNoMatch);
     nock.cleanAll();
     nock.enableNetConnect();
   }
