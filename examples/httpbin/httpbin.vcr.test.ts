@@ -4,7 +4,7 @@ import { defineVcr } from "../../src/vitest.ts";
 
 /**
  * Dev-loop config that talks to httpbin.org. A plain async provider stands
- * in for a real cloud secret — the value is an obvious test string so `bside
+ * in for a real cloud secret — the value is an obvious test string so `vcrkit
  * record` runs offline-friendly and the cassette is reproducible without any
  * out-of-band setup.
  *

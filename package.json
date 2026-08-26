@@ -1,5 +1,5 @@
 {
-  "name": "bside",
+  "name": "vcrkit",
   "version": "1.0.0",
   "description": "Zero-ceremony VCR (record/replay) HTTP tests on top of nock, with first-class secret loading and redaction.",
   "keywords": [
@@ -16,15 +16,14 @@
   "author": "Sophia Willows",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sophiabits/bside.git"
+    "url": "git+https://github.com/sophiabits/vcrkit.git"
   },
   "bin": {
-    "bside": "dist/bin/bside.js"
+    "vcrkit": "dist/bin/vcrkit.js"
   },
   "files": [
     "dist",
     "src",
-    "img",
     "LICENSE",
     "README.md"
   ],
@@ -47,14 +46,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "pnpm build && vitest run -c vitest.e2e.config.ts",
-    "bside": "node --experimental-strip-types --no-warnings src/bin/bside.ts",
-    "test:vcr": "cd examples/httpbin && node --experimental-strip-types --no-warnings ../../src/bin/bside.ts replay",
+    "vcrkit": "node --experimental-strip-types --no-warnings src/bin/vcrkit.ts",
+    "test:vcr": "cd examples/httpbin && node --experimental-strip-types --no-warnings ../../src/bin/vcrkit.ts replay",
     "lint": "oxlint",
     "fix": "oxlint --fix && oxfmt",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "check": "pnpm lint && pnpm fmt:check && pnpm typecheck && pnpm test && pnpm test:e2e",
-    "test:acceptance": "pnpm build && pnpm install && pnpm -r --filter '@bside-acceptance/*' test"
+    "test:acceptance": "pnpm build && pnpm install && pnpm -r --filter '@vcrkit-acceptance/*' test"
   },
   "dependencies": {
     "nock": "^14.0.0"

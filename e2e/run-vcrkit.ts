@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-export const BSIDE_BIN = resolve(here, "../dist/bin/bside.js");
+export const VCRKIT_BIN = resolve(here, "../dist/bin/vcrkit.js");
 
 export interface RunResult {
   stdout: string;
@@ -20,14 +20,14 @@ export interface RunOptions {
 }
 
 export function assertBuilt(): void {
-  if (!existsSync(BSIDE_BIN)) {
+  if (!existsSync(VCRKIT_BIN)) {
     throw new Error(
-      `bside bin not found at ${BSIDE_BIN}. Run \`pnpm build\` before the CLI integration suite.`,
+      `vcrkit bin not found at ${VCRKIT_BIN}. Run \`pnpm build\` before the CLI integration suite.`,
     );
   }
 }
 
-export function runBside(args: string[], opts: RunOptions = {}): Promise<RunResult> {
+export function runVcrkit(args: string[], opts: RunOptions = {}): Promise<RunResult> {
   assertBuilt();
 
   const env: NodeJS.ProcessEnv = { ...process.env };
@@ -40,7 +40,7 @@ export function runBside(args: string[], opts: RunOptions = {}): Promise<RunResu
   }
 
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn(process.execPath, [BSIDE_BIN, ...args], {
+    const child = spawn(process.execPath, [VCRKIT_BIN, ...args], {
       cwd: opts.cwd ?? process.cwd(),
       env,
       stdio: ["ignore", "pipe", "pipe"],
@@ -59,7 +59,7 @@ export function runBside(args: string[], opts: RunOptions = {}): Promise<RunResu
       opts.timeoutMs !== undefined
         ? setTimeout(() => {
             child.kill("SIGKILL");
-            rejectPromise(new Error(`bside timed out after ${opts.timeoutMs}ms`));
+            rejectPromise(new Error(`vcrkit timed out after ${opts.timeoutMs}ms`));
           }, opts.timeoutMs)
         : null;
 

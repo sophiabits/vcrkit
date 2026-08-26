@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { BSIDE_BIN, runBside } from "./run-bside.ts";
+import { VCRKIT_BIN, runVcrkit } from "./run-vcrkit.ts";
 
 const temporaryDirectories: string[] = [];
 
@@ -14,9 +14,9 @@ afterEach(() => {
   }
 });
 
-describe("bside CLI usage", () => {
+describe("vcrkit CLI usage", () => {
   it.each(["--help", "-h"])("prints help to stdout and exits 0 for %s", async (flag) => {
-    const result = await runBside([flag]);
+    const result = await runVcrkit([flag]);
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Usage:");
@@ -24,7 +24,7 @@ describe("bside CLI usage", () => {
   });
 
   it("prints usage to stderr and exits 2 when no command is provided", async () => {
-    const result = await runBside([]);
+    const result = await runVcrkit([]);
 
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toBe("");
@@ -32,7 +32,7 @@ describe("bside CLI usage", () => {
   });
 
   it("rejects --usage as an unknown option", async () => {
-    const result = await runBside(["--usage"]);
+    const result = await runVcrkit(["--usage"]);
 
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toBe("");
@@ -41,9 +41,9 @@ describe("bside CLI usage", () => {
   });
 });
 
-describe("bside record — vitest context guard (bin/bside.ts:35)", () => {
+describe("vcrkit record — vitest context guard (bin/vcrkit.ts:35)", () => {
   it("exits 2 and explains itself when VITEST=true is in the environment", async () => {
-    const result = await runBside(["record"], {
+    const result = await runVcrkit(["record"], {
       env: { VITEST: "true" },
       timeoutMs: 15_000,
     });
@@ -53,11 +53,11 @@ describe("bside record — vitest context guard (bin/bside.ts:35)", () => {
   });
 });
 
-describe("bside record — fixture context", () => {
+describe("vcrkit record — fixture context", () => {
   it("injects an empty secrets object when no providers are configured", async () => {
-    const project = mkdtempSync(join(tmpdir(), "bside-no-secrets-"));
+    const project = mkdtempSync(join(tmpdir(), "vcrkit-no-secrets-"));
     temporaryDirectories.push(project);
-    const vitestModule = pathToFileURL(resolve(dirname(BSIDE_BIN), "../vitest.js")).href;
+    const vitestModule = pathToFileURL(resolve(dirname(VCRKIT_BIN), "../vitest.js")).href;
     writeFileSync(
       join(project, "empty.vcr.test.ts"),
       [
@@ -71,7 +71,7 @@ describe("bside record — fixture context", () => {
       ].join("\n"),
     );
 
-    const result = await runBside(["record"], {
+    const result = await runVcrkit(["record"], {
       cwd: project,
       env: { VITEST: undefined, VITEST_WORKER_ID: undefined },
       timeoutMs: 15_000,
@@ -81,9 +81,9 @@ describe("bside record — fixture context", () => {
   });
 
   it("accepts short secrets but rejects empty provider values before recording", async () => {
-    const project = mkdtempSync(join(tmpdir(), "bside-short-secrets-"));
+    const project = mkdtempSync(join(tmpdir(), "vcrkit-short-secrets-"));
     temporaryDirectories.push(project);
-    const vitestModule = pathToFileURL(resolve(dirname(BSIDE_BIN), "../vitest.js")).href;
+    const vitestModule = pathToFileURL(resolve(dirname(VCRKIT_BIN), "../vitest.js")).href;
     writeFileSync(
       join(project, "short.vcr.test.ts"),
       [
@@ -95,7 +95,7 @@ describe("bside record — fixture context", () => {
       ].join("\n"),
     );
 
-    const shortResult = await runBside(["record"], {
+    const shortResult = await runVcrkit(["record"], {
       cwd: project,
       env: { VITEST: undefined, VITEST_WORKER_ID: undefined },
       timeoutMs: 15_000,
@@ -112,7 +112,7 @@ describe("bside record — fixture context", () => {
       ].join("\n"),
     );
 
-    const emptyResult = await runBside(["record"], {
+    const emptyResult = await runVcrkit(["record"], {
       cwd: project,
       env: { VITEST: undefined, VITEST_WORKER_ID: undefined },
       timeoutMs: 15_000,

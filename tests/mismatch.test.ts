@@ -316,7 +316,7 @@ describe("formatMismatch", () => {
       `actual    "gid://shopify/Cart/def456"   ← looks like an id; mark volatile?`,
     );
     expect(out).toContain(`Fix: add 'cartId' to volatile.request.body, or re-record:`);
-    expect(out).toContain(`rm "/repo/tests/__cassettes__/foo/happy-path.json" && bside record`);
+    expect(out).toContain(`rm "/repo/tests/__cassettes__/foo/happy-path.json" && vcrkit record`);
   });
 
   it("handles the no-candidates case", () => {
@@ -327,7 +327,7 @@ describe("formatMismatch", () => {
     });
     const out = formatMismatch(report);
     expect(out).toContain(`Cassette has no recordings to compare against.`);
-    expect(out).toContain(`rm "/repo/tests/__cassettes__/foo/happy-path.json" && bside record`);
+    expect(out).toContain(`rm "/repo/tests/__cassettes__/foo/happy-path.json" && vcrkit record`);
   });
 
   it("omits the request-index suffix when none is provided", () => {

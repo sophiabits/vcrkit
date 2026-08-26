@@ -1,5 +1,5 @@
 /**
- * Record-mode diff reporter. After `bside record` runs, summarize which
+ * Record-mode diff reporter. After `vcrkit record` runs, summarize which
  * cassettes were created, changed, or untouched relative to the pre-run state.
  *
  * Diffs are computed on a normalized cassette so volatile ordinal churn
@@ -103,7 +103,7 @@ export interface RecordSummary {
 }
 
 export interface SummarizeOptions {
-  /** Caller supplies this from aggregated per-test `task.meta.bsideRedacted`. */
+  /** Caller supplies this from aggregated per-test `task.meta.vcrkitRedacted`. */
   redactedTotal?: number;
   /** Failed tests collected from the runner's task tree. */
   failedTests?: FailedTest[];
@@ -431,10 +431,10 @@ export function formatRecordSummary(summary: RecordSummary, options: FormatOptio
   const lines: string[] = [];
   const total = summary.cassettes.length;
   if (total === 0) {
-    return `${palette.bold("bside record")}: no cassettes written.\n`;
+    return `${palette.bold("vcrkit record")}: no cassettes written.\n`;
   }
 
-  lines.push(`${palette.bold("bside record")}: ${total} cassette${total === 1 ? "" : "s"}`);
+  lines.push(`${palette.bold("vcrkit record")}: ${total} cassette${total === 1 ? "" : "s"}`);
   for (const entry of summary.cassettes) {
     lines.push(formatEntryHeader(entry, palette));
     if (entry.fields && entry.fields.length > 0) {
@@ -443,7 +443,7 @@ export function formatRecordSummary(summary: RecordSummary, options: FormatOptio
   }
 
   // Failures: list them after the cassette diff and before the totals so the
-  // last lines of `bside record` output own the failure unambiguously, instead
+  // last lines of `vcrkit record` output own the failure unambiguously, instead
   // of trailing off into "N unchanged" while a test silently failed earlier in
   // the run.
   if (summary.failedTests.length > 0) {

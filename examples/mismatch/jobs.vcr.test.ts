@@ -1,4 +1,4 @@
-import { defineVcr } from "bside/vitest";
+import { defineVcr } from "vcrkit/vitest";
 
 const vcr = defineVcr({});
 

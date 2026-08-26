@@ -43,13 +43,13 @@ export async function readCassette(path: string): Promise<Cassette | null> {
   };
   if (raw.version !== CASSETTE_VERSION) {
     throw makeUserFacingError(
-      `bside: cassette at ${path} has unsupported version ${String(raw.version)} — ` +
-        `this CLI only understands version ${CASSETTE_VERSION}. Upgrade bside or re-record.`,
+      `vcrkit: cassette at ${path} has unsupported version ${String(raw.version)} — ` +
+        `this CLI only understands version ${CASSETTE_VERSION}. Upgrade vcrkit or re-record.`,
     );
   }
   if (!Array.isArray(raw.definitions)) {
     throw makeUserFacingError(
-      `bside: cassette at ${path} is malformed — \`definitions\` is missing or not an array`,
+      `vcrkit: cassette at ${path} is malformed — \`definitions\` is missing or not an array`,
     );
   }
   return { version: CASSETTE_VERSION, definitions: raw.definitions as NockDefinition[] };

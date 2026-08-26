@@ -1,18 +1,18 @@
 {
-  "name": "@bside-acceptance/v4",
+  "name": "@vcrkit-acceptance/v4",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "bside replay"
+    "test": "vcrkit replay"
   },
   "dependencies": {
-    "bside": "workspace:*",
+    "vcrkit": "workspace:*",
     "vite": "^6.0.0",
     "vitest": "^4.0.0"
   },
   "dependenciesMeta": {
-    "bside": {
+    "vcrkit": {
       "injected": true
     }
   }

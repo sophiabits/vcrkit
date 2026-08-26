@@ -90,7 +90,7 @@ export async function recordCassette(
       try {
         await cleanups[i]!();
       } catch (err) {
-        console.error(`bside: onCleanup callback threw:`, err);
+        console.error(`vcrkit: onCleanup callback threw:`, err);
       }
     }
   }
@@ -123,7 +123,7 @@ export async function replayCassette(
   const cassette: Cassette | null = await readCassette(cassettePath);
   if (!cassette) {
     throw makeUserFacingError(
-      `bside: no cassette at ${cassettePath} — run \`bside record\` to create it`,
+      `vcrkit: no cassette at ${cassettePath} — run \`vcrkit record\` to create it`,
       { captureFrom: replayCassette },
     );
   }
@@ -199,7 +199,7 @@ export async function replayCassette(
       await body();
       if (!nock.isDone()) {
         const pending = nock.pendingMocks();
-        staleMessage = `bside: stale cassette ${cassettePath} — ${pending.length} unused interceptor(s):\n  ${pending.join("\n  ")}`;
+        staleMessage = `vcrkit: stale cassette ${cassettePath} — ${pending.length} unused interceptor(s):\n  ${pending.join("\n  ")}`;
       }
     } catch (err) {
       bodyError = err;
@@ -220,7 +220,7 @@ export async function replayCassette(
   // user caught the fetch error and asserted something else, a teardown
   // failed, etc.), attach that as `cause` so the real failure isn't silently
   // swallowed by the diagnostic. Never attach nock's error: it repeats the
-  // request with raw headers and body, which may contain secrets that bside's
+  // request with raw headers and body, which may contain secrets that vcrkit's
   // diagnostic intentionally omits or redacts.
   const captured = firstNoMatch as NoMatchCapture | null;
   if (captured !== null) {

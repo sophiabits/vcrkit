@@ -8,7 +8,7 @@ import { cassettePathFor, readCassette, writeCassette } from "../src/core/casset
 let directory: string;
 
 beforeEach(() => {
-  directory = mkdtempSync(join(tmpdir(), "bside-cassette-"));
+  directory = mkdtempSync(join(tmpdir(), "vcrkit-cassette-"));
 });
 
 afterEach(() => {

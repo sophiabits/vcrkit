@@ -40,7 +40,7 @@ export type SecretsOf<C extends VcrConfig> = C extends {
 
 export interface VcrFixture<S extends Record<string, string> = Record<string, string>> {
   (name: string, fn: VcrFn<S>): void;
-  /** Non-enumerable introspection handle for the `bside` bin. */
+  /** Non-enumerable introspection handle for the `vcrkit` bin. */
   readonly _config: VcrConfig;
 }
 
@@ -82,13 +82,13 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
     }
   }
   // Only warn when we're actually going to run vcr tests. Under bare `vitest
-  // run` (no bside bin) the fixture skips every vcr test, and a stderr spam
+  // run` (no vcrkit bin) the fixture skips every vcr test, and a stderr spam
   // the user can't act on is pure noise.
   if (mode !== null) {
     for (const [replay, keys] of replayToSecrets) {
       if (keys.length > 1) {
         console.warn(
-          `bside: secrets [${keys.map((k) => `'${k}'`).join(", ")}] all resolve to the ` +
+          `vcrkit: secrets [${keys.map((k) => `'${k}'`).join(", ")}] all resolve to the ` +
             `same replay value (${JSON.stringify(replay)}). Cassettes can't tell which ` +
             `secret a scrub came from, so changing one secret's replayAs later will ` +
             `require a full re-record. Pick one to keep and give the others distinct ` +
@@ -118,7 +118,7 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
       const { resolved, replay } = results[i]!;
       if (resolved === "") {
         throw makeUserFacingError(
-          `bside: secret '${k}' resolved to an empty value; refusing to record because ` +
+          `vcrkit: secret '${k}' resolved to an empty value; refusing to record because ` +
             `an empty secret cannot be scrubbed safely. Check the provider, or remove ` +
             `'${k}' from the secrets config if it is not actually sensitive.`,
         );
@@ -136,7 +136,7 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
 
   const vcr = ((name: string, fn: VcrFn): void => {
     if (mode === null) {
-      test.skip(`${name} ↓ run via 'bside replay'`, () => {});
+      test.skip(`${name} ↓ run via 'vcrkit replay'`, () => {});
       return;
     }
 
@@ -151,12 +151,12 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
         const filepath = taskCtx.task.file?.filepath ?? "";
         const suitePath = describeStackOf(taskCtx.task);
         const cassettePath = cassettePathFor(filepath, suitePath, name);
-        (taskCtx.task.meta as Record<string, unknown>).bsideCassettePath = cassettePath;
+        (taskCtx.task.meta as Record<string, unknown>).vcrkitCassettePath = cassettePath;
         const identity = [filepath, ...suitePath, name].join(" › ");
         const prior = cassetteRegistry.get(cassettePath);
         if (prior !== undefined && prior !== identity) {
           throw makeUserFacingError(
-            `bside: two tests resolve to the same cassette path\n` +
+            `vcrkit: two tests resolve to the same cassette path\n` +
               `  path:   ${cassettePath}\n` +
               `  first:  ${prior}\n` +
               `  second: ${identity}\n` +
@@ -178,7 +178,7 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
           );
           // Vitest serializes task.meta back to the main process, so the
           // bin's record summary can aggregate per-test stats without IPC.
-          (taskCtx.task.meta as Record<string, unknown>).bsideRedacted = result.redacted;
+          (taskCtx.task.meta as Record<string, unknown>).vcrkitRedacted = result.redacted;
         } else {
           await replayCassette(
             cassettePath,
@@ -203,7 +203,7 @@ function noop(): void {}
  * Per-worker registry of cassette paths → test identity. Used to detect
  * sanitizer-level path collisions (e.g. "foo bar" vs "foo-bar") that the
  * describe-stack subdirs in `cassettePathFor` can't disambiguate. Per-worker
- * is enough: Vitest's default file-per-worker pool plus bside record's
+ * is enough: Vitest's default file-per-worker pool plus vcrkit record's
  * `fileParallelism: false` means any two tests that *can* collide are in the
  * same worker.
  */

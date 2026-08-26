@@ -16,8 +16,8 @@ function usage(exitCode: 0 | 2): never {
   stream.write(
     [
       "Usage:",
-      "  bside replay              # offline, fail on cassette miss",
-      "  bside record              # network on, write cassettes",
+      "  vcrkit replay              # offline, fail on cassette miss",
+      "  vcrkit record              # network on, write cassettes",
       "",
     ].join("\n"),
   );
@@ -25,14 +25,14 @@ function usage(exitCode: 0 | 2): never {
 }
 
 /**
- * Prevent execution inside a vitest context that wasn't set up by bside, to
+ * Prevent execution inside a vitest context that wasn't set up by vcrkit, to
  * prevent VCRs from running under unsafe configs (e.g. parallelism on).
  */
 function assertSafeRecordContext(): void {
   if (process.env.VITEST === "true" || process.env.VITEST_WORKER_ID !== undefined) {
     process.stderr.write(
-      "bside record: refusing to run inside an existing vitest context.\n" +
-        "  Run `bside record` directly, not via `vitest run` or a parent vitest invocation.\n" +
+      "vcrkit record: refusing to run inside an existing vitest context.\n" +
+        "  Run `vcrkit record` directly, not via `vitest run` or a parent vitest invocation.\n" +
         "  (Record needs to control parallelism and reporters.)\n",
     );
     process.exit(2);
@@ -68,12 +68,12 @@ async function runVitest(mode: Mode): Promise<number> {
     const afterSnapshot = snapshotCassettes(cwd);
     const redactedTotal = collectTaskMetadata(
       files,
-      "bsideRedacted",
+      "vcrkitRedacted",
       (value): value is number => typeof value === "number",
     ).reduce((total, value) => total + value, 0);
     const activeCassettePaths = collectTaskMetadata(
       files,
-      "bsideCassettePath",
+      "vcrkitCassettePath",
       (value): value is string => typeof value === "string",
     );
     const failedTests = collectFailedTests(files);
@@ -188,7 +188,7 @@ async function main(): Promise<void> {
     case undefined:
       usage(2);
     default:
-      process.stderr.write(`bside: unknown command: ${cmd}\n`);
+      process.stderr.write(`vcrkit: unknown command: ${cmd}\n`);
       usage(2);
   }
 }

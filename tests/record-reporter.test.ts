@@ -14,7 +14,7 @@ import {
 
 let root: string;
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "bside-rec-"));
+  root = mkdtempSync(join(tmpdir(), "vcrkit-rec-"));
 });
 afterEach(() => {
   rmSync(root, { recursive: true, force: true });
@@ -281,7 +281,7 @@ describe("formatRecordSummary", () => {
       totals: { created: 1, changed: 1, unchanged: 1, orphaned: 0, redacted: 4, failed: 0 },
     };
     const out = formatRecordSummary(summary, { color: false });
-    expect(out).toContain("bside record: 3 cassettes");
+    expect(out).toContain("vcrkit record: 3 cassettes");
     expect(out).toContain("+ tests/__cassettes__/a/created.json");
     expect(out).toContain("created (42 lines)");
     expect(out).toContain("~ tests/__cassettes__/a/changed.json");

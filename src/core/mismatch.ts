@@ -571,5 +571,5 @@ function leafFieldName(path: string): string {
 }
 
 function reRecordCommand(cassettePath: string): string {
-  return `rm ${JSON.stringify(cassettePath)} && bside record`;
+  return `rm ${JSON.stringify(cassettePath)} && vcrkit record`;
 }

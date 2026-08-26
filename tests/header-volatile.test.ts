@@ -8,7 +8,7 @@ import { parseRedactConfig, parseVolatileConfig } from "../src/core/volatile.ts"
 
 let tmpDir: string;
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "bside-hdr-"));
+  tmpDir = mkdtempSync(join(tmpdir(), "vcrkit-hdr-"));
 });
 afterEach(() => {
   rmSync(tmpDir, { recursive: true, force: true });

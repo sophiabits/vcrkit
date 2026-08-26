@@ -8,7 +8,7 @@ import { BUILT_IN_IGNORED_HEADERS, scrubDefinitions } from "../src/core/redact.t
 
 let tmpDir: string;
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "bside-rt-"));
+  tmpDir = mkdtempSync(join(tmpdir(), "vcrkit-rt-"));
 });
 afterEach(() => {
   rmSync(tmpDir, { recursive: true, force: true });

@@ -1,17 +1,17 @@
 {
-  "name": "@bside-acceptance/v3",
+  "name": "@vcrkit-acceptance/v3",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "bside replay"
+    "test": "vcrkit replay"
   },
   "dependencies": {
-    "bside": "workspace:*",
+    "vcrkit": "workspace:*",
     "vitest": "^3.2.0"
   },
   "dependenciesMeta": {
-    "bside": {
+    "vcrkit": {
       "injected": true
     }
   }

@@ -9,7 +9,7 @@ import { replayCassette, stripPort } from "../src/core/runner.ts";
 
 let tmpDir: string;
 beforeEach(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), "bside-runner-"));
+  tmpDir = mkdtempSync(join(tmpdir(), "vcrkit-runner-"));
 });
 afterEach(() => {
   rmSync(tmpDir, { recursive: true, force: true });
@@ -178,7 +178,7 @@ describe("replayCassette", () => {
     expect(err!.message).toContain("cartId");
     expect(err!.message).toContain('"abc123"');
     expect(err!.message).toContain('"def456"');
-    expect(err!.message).toContain(`rm ${JSON.stringify(cassettePath)} && bside record`);
+    expect(err!.message).toContain(`rm ${JSON.stringify(cassettePath)} && vcrkit record`);
     expect(err!.cause).toBeUndefined();
     expect(err!.message).not.toContain("must-not-leak");
     expect(err!.stack).not.toContain("must-not-leak");

@@ -38,20 +38,20 @@ describe("core engine", () => {
   });
 });
 
-describe("bside/secrets", () => {
+describe("vcrkit/secrets", () => {
   it("fromEnv reads a present var", async () => {
-    const provider = fromEnv("BSIDE_TEST_VAR");
-    process.env.BSIDE_TEST_VAR = "ok";
+    const provider = fromEnv("VCRKIT_TEST_VAR");
+    process.env.VCRKIT_TEST_VAR = "ok";
     try {
       await expect(provider()).resolves.toBe("ok");
     } finally {
-      delete process.env.BSIDE_TEST_VAR;
+      delete process.env.VCRKIT_TEST_VAR;
     }
   });
 
   it("fromEnv throws on missing var", async () => {
-    const provider = fromEnv("BSIDE_DEFINITELY_UNSET_VAR");
-    await expect(provider()).rejects.toThrow(/BSIDE_DEFINITELY_UNSET_VAR/);
+    const provider = fromEnv("VCRKIT_DEFINITELY_UNSET_VAR");
+    await expect(provider()).rejects.toThrow(/VCRKIT_DEFINITELY_UNSET_VAR/);
   });
 
   it("replayAs wraps provider + replay value", () => {
@@ -62,7 +62,7 @@ describe("bside/secrets", () => {
   });
 });
 
-describe("bside/vitest", () => {
+describe("vcrkit/vitest", () => {
   it("defineVcr returns a callable with non-enumerable _config", () => {
     const cfg = { secrets: {}, redact: { request: { headers: ["x-foo"] } } };
     const vcr = defineVcr(cfg);

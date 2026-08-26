@@ -1,5 +1,5 @@
 /**
- * bside/secrets — provider factories, replayAs, and shipped fakes.
+ * vcrkit/secrets — provider factories, replayAs, and shipped fakes.
  */
 
 import { createHash } from "node:crypto";
@@ -43,7 +43,7 @@ export function fromEnv(name: string): SecretProvider {
   return async () => {
     const value = process.env[name];
     if (value === undefined || value === "") {
-      throw makeUserFacingError(`bside: env var ${name} is not set`);
+      throw makeUserFacingError(`vcrkit: env var ${name} is not set`);
     }
     return value;
   };
@@ -83,7 +83,7 @@ export function gcpSecret(opts: GcpSecretOpts): SecretProvider {
       const [response] = await client.accessSecretVersion({ name: fullName });
       const payload = response.payload?.data;
       if (!payload) {
-        throw makeUserFacingError(`bside: ${fullName} returned no payload`);
+        throw makeUserFacingError(`vcrkit: ${fullName} returned no payload`);
       }
       return typeof payload === "string" ? payload : Buffer.from(payload).toString("utf8");
     } catch (err) {
@@ -131,7 +131,7 @@ export function awsSecret(opts: AwsSecretOpts): SecretProvider {
       if (out.SecretBinary) {
         return Buffer.from(out.SecretBinary).toString("utf8");
       }
-      throw makeUserFacingError(`bside: awsSecret(${opts.secretId}) returned no value`);
+      throw makeUserFacingError(`vcrkit: awsSecret(${opts.secretId}) returned no value`);
     } catch (err) {
       throw wrapAuthError(err, `awsSecret(${opts.secretId})`, opts.hint);
     }
@@ -175,7 +175,7 @@ export function awsParameter(opts: AwsParameterOpts): SecretProvider {
       );
       const value = out.Parameter?.Value;
       if (typeof value !== "string") {
-        throw makeUserFacingError(`bside: awsParameter(${opts.name}) returned no value`);
+        throw makeUserFacingError(`vcrkit: awsParameter(${opts.name}) returned no value`);
       }
       return value;
     } catch (err) {
@@ -190,7 +190,7 @@ async function loadSdk<T>(importer: () => Promise<T>, pkg: string, hint: string)
   } catch (err) {
     const cause = err instanceof Error ? err.message : String(err);
     throw makeUserFacingError(
-      `bside: failed to load optional peer dep \`${pkg}\` — install it as a devDependency.\n` +
+      `vcrkit: failed to load optional peer dep \`${pkg}\` — install it as a devDependency.\n` +
         `  Hint: ${hint}\n` +
         `  Cause: ${cause}`,
     );
@@ -200,7 +200,7 @@ async function loadSdk<T>(importer: () => Promise<T>, pkg: string, hint: string)
 function wrapAuthError(err: unknown, provider: string, hint: string | undefined): Error {
   const msg = err instanceof Error ? err.message : String(err);
   const hintLine = hint ? `\n  Hint: ${hint}` : "";
-  return makeUserFacingError(`bside: ${provider} failed: ${msg}${hintLine}`);
+  return makeUserFacingError(`vcrkit: ${provider} failed: ${msg}${hintLine}`);
 }
 
 export interface FakeTokenOpts {
@@ -231,7 +231,7 @@ export function fakeToken(opts: FakeTokenOpts = {}): FakeFactory {
   const seedOverride = opts.seed;
   if (length < prefix.length) {
     throw makeUserFacingError(
-      `bside: fakeToken length (${length}) must be >= prefix length (${prefix.length})`,
+      `vcrkit: fakeToken length (${length}) must be >= prefix length (${prefix.length})`,
     );
   }
   return (key: string): string => {

@@ -9,17 +9,17 @@ afterEach(() => {
 
 describe("fromEnv", () => {
   it("returns the env var value when set", async () => {
-    vi.stubEnv("BSIDE_X", "value");
-    await expect(fromEnv("BSIDE_X")()).resolves.toBe("value");
+    vi.stubEnv("VCRKIT_X", "value");
+    await expect(fromEnv("VCRKIT_X")()).resolves.toBe("value");
   });
 
   it("throws with the var name when missing", async () => {
-    await expect(fromEnv("BSIDE_NOT_SET")()).rejects.toThrow(/BSIDE_NOT_SET/);
+    await expect(fromEnv("VCRKIT_NOT_SET")()).rejects.toThrow(/VCRKIT_NOT_SET/);
   });
 
   it("throws when set to empty string (likely a config bug)", async () => {
-    vi.stubEnv("BSIDE_EMPTY", "");
-    await expect(fromEnv("BSIDE_EMPTY")()).rejects.toThrow(/BSIDE_EMPTY/);
+    vi.stubEnv("VCRKIT_EMPTY", "");
+    await expect(fromEnv("VCRKIT_EMPTY")()).rejects.toThrow(/VCRKIT_EMPTY/);
   });
 });
 

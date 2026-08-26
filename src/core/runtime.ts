@@ -5,7 +5,7 @@ export type VcrMode = "record" | "replay";
 /**
  * Reads the VCR mode we're running in.
  *
- * Returns null when the fixture is loaded outside `bside replay` / `bside record` so the fixture can
+ * Returns null when the fixture is loaded outside `vcrkit replay` / `vcrkit record` so the fixture can
  * auto-skip.
  */
 export function readVcrMode(env: NodeJS.ProcessEnv = process.env): VcrMode | null {
@@ -27,9 +27,9 @@ let active: string | null = null;
 export async function withVcrLock<T>(name: string, fn: () => Promise<T>): Promise<T> {
   if (active !== null) {
     throw makeUserFacingError(
-      `bside: cassette "${name}" started while "${active}" is still active in ` +
+      `vcrkit: cassette "${name}" started while "${active}" is still active in ` +
         `the same process. VCR tests can't run concurrently (nock is global). ` +
-        `Remove .concurrent, or run via \`bside record/replay\`.`,
+        `Remove .concurrent, or run via \`vcrkit record/replay\`.`,
     );
   }
   active = name;

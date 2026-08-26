@@ -3,6 +3,9 @@ packages:
   - "acceptance/*"
   - "examples/*"
 
+syncInjectedDepsAfterScripts:
+  - build
+
 allowBuilds:
   "@firebase/util": true
   esbuild: true

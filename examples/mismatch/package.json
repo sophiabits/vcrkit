@@ -1,17 +1,17 @@
 {
-  "name": "@bside-examples/mismatch",
+  "name": "@vcrkit-examples/mismatch",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "bside": "bside"
+    "vcrkit": "vcrkit"
   },
   "dependencies": {
-    "bside": "workspace:*",
+    "vcrkit": "workspace:*",
     "vitest": "^3.2.0"
   },
   "dependenciesMeta": {
-    "bside": {
+    "vcrkit": {
       "injected": true
     }
   }

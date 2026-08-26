@@ -1,5 +1,5 @@
 /**
- * Errors produced by bside (mismatch reports, cassette-miss, secret loading,
+ * Errors produced by vcrkit (mismatch reports, cassette-miss, secret loading,
  * etc.) should read as test-author-facing diagnostics — not as internal-
  * machinery traces.
  *
