@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { NockDefinition, NockRawHeaders } from "../src/core/cassette.ts";
+import type { NockDefinition } from "../src/core/cassette.ts";
 import { scrubDefinitions } from "../src/core/redact.ts";
 import {
   BUILT_IN_REDACT_HEADERS,
@@ -156,7 +156,7 @@ describe("response-side header deny-list", () => {
       },
     };
     const out = canonicalizeDefinitions([def], parseRedactConfig(undefined));
-    const raw = out[0]!.rawHeaders as NockRawHeaders;
+    const raw = out[0]!.rawHeaders!;
     const cookies = raw["set-cookie"] as string[];
     expect(cookies).toHaveLength(2);
     for (const c of cookies) {
@@ -201,7 +201,7 @@ describe("response-side header deny-list", () => {
       [def],
       parseRedactConfig({ response: { headers: ["x-tenant-token"] } }),
     );
-    const raw = out[0]!.rawHeaders as NockRawHeaders;
+    const raw = out[0]!.rawHeaders!;
     expect(raw["x-tenant-token"]).not.toContain("super_secret");
     expect(parseVolatileToken(raw["x-tenant-token"])?.path).toBe("x-tenant-token");
     expect(out[0]!.reqheaders?.["x-tenant-token"]).toBe("request-value");
@@ -221,7 +221,7 @@ describe("response-side header deny-list", () => {
     };
     const out = canonicalizeDefinitions([def], parseRedactConfig(undefined));
     const reqAuth = (out[0]!.reqheaders as Record<string, string>).authorization;
-    const resAuth = (out[0]!.rawHeaders as NockRawHeaders).authorization;
+    const resAuth = out[0]!.rawHeaders!.authorization;
     expect(parseVolatileToken(reqAuth)?.kind).toBe("header");
     expect(parseVolatileToken(resAuth)?.kind).toBe("response-header");
   });

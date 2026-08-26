@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { NockDefinition, NockRawHeaders } from "../src/core/cassette.ts";
+import type { NockDefinition } from "../src/core/cassette.ts";
 import { BUILT_IN_IGNORED_HEADERS, scrubDefinitions } from "../src/core/redact.ts";
 
 let tmpDir: string;
@@ -137,7 +137,7 @@ describe("scrubDefinitions", () => {
       },
     ];
     const { defs: out } = scrubDefinitions(defs, []);
-    const stripped = out[0]!.rawHeaders as NockRawHeaders;
+    const stripped = out[0]!.rawHeaders!;
     expect(Object.keys(stripped).sort()).toEqual(["content-type", "x-rate-limit-remaining"]);
   });
 
