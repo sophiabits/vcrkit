@@ -205,7 +205,6 @@ export function isCanonical(s: unknown): boolean {
  * definitions; replay assigns them as live requests arrive.
  */
 export class OrdinalStore {
-  private counters = new Map<string, number>();
   private maps = new Map<string, Map<string, number>>();
 
   /** Existing ordinal for value, or null. */
@@ -221,27 +220,23 @@ export class OrdinalStore {
     if (!m) {
       m = new Map();
       this.maps.set(key, m);
-      this.counters.set(key, 0);
     }
     const existing = m.get(value);
     if (existing !== undefined) {
       return existing;
     }
-    const ord = this.counters.get(key)!;
-    this.counters.set(key, ord + 1);
+    const ord = m.size;
     m.set(value, ord);
     return ord;
   }
 
   snapshot(): OrdinalStore {
     const s = new OrdinalStore();
-    s.counters = new Map(this.counters);
     s.maps = new Map(Array.from(this.maps, ([k, v]) => [k, new Map(v)]));
     return s;
   }
 
   adoptFrom(other: OrdinalStore): void {
-    this.counters = new Map(other.counters);
     this.maps = new Map(Array.from(other.maps, ([k, v]) => [k, new Map(v)]));
   }
 }
