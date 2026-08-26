@@ -203,7 +203,7 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
             cassettePath,
             volatileFields,
             async () => {
-              await fn({ secrets: replaySecrets as never, onCleanup: noop });
+              await fn({ secrets: replaySecrets, onCleanup: noop });
             },
             { testName: name },
           );
