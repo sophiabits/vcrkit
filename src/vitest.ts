@@ -106,36 +106,27 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
     }
   }
 
-  // Real values, populated only in record by the suite beforeAll below. Start
-  // with the valid secret-free context: when no providers are configured there
-  // is no beforeAll preflight, but record and replay must still expose `{}`.
-  let realSecrets: Record<string, string> = {};
-  let scrubRules: ScrubRule[] = [];
+  // Real values, populated only in record by the suite beforeAll below.
+  const realSecrets: Record<string, string> = {};
+  const scrubRules: ScrubRule[] = [];
 
   async function resolveRealSecrets(): Promise<void> {
-    // Providers are independent network calls (GCP / AWS / env / user-defined).
-    // Fire them concurrently — total wall time becomes max(provider) rather
-    // than sum(provider). Order is preserved by mapping in-place.
     const results = await Promise.all(
-      secretEntries.map(([k, entry]) => resolveSecretEntry(entry, k)),
+      secretEntries.map(([key, entry]) =>
+        resolveSecretEntry(entry, key).then((value) => [key, value] as const),
+      ),
     );
-    const real: Record<string, string> = {};
-    const rules: ScrubRule[] = [];
-    for (let i = 0; i < secretEntries.length; i++) {
-      const [k] = secretEntries[i]!;
-      const { resolved, replay } = results[i]!;
+    for (const [key, { resolved, replay }] of results) {
       if (resolved === "") {
         throw makeUserFacingError(
-          `vcrkit: secret '${k}' resolved to an empty value; refusing to record because ` +
+          `vcrkit: secret '${key}' resolved to an empty value; refusing to record because ` +
             `an empty secret cannot be scrubbed safely. Check the provider, or remove ` +
-            `'${k}' from the secrets config if it is not actually sensitive.`,
+            `'${key}' from the secrets config if it is not actually sensitive.`,
         );
       }
-      real[k] = resolved;
-      rules.push({ real: resolved, canonical: replay });
+      realSecrets[key] = resolved;
+      scrubRules.push({ real: resolved, canonical: replay });
     }
-    realSecrets = real;
-    scrubRules = rules;
   }
 
   const volatileFields: VolatileField[] = compileVolatileFields(config.volatile, config.redact);
