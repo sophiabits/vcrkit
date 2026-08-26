@@ -170,6 +170,7 @@ export async function replayCassette(
       // Shared replay store: ordinals committed by one interceptor's matcher
       // are visible to later ones, so the bijection holds across requests.
       const store = new OrdinalStore();
+      const hasRequestBodyFields = volatileFields.some((field) => field.kind === "body");
       const headerFieldsByPath = new Map<string, VolatileField>();
       for (const field of volatileFields) {
         if (field.kind === "header") {
@@ -181,15 +182,15 @@ export async function replayCassette(
           ...def,
           reqheaders: rewriteReqheaders(def.reqheaders, headerFieldsByPath, store),
         };
-        // Only override the body matcher when the cassette actually has a body
-        // to compare against. Wrapping an undefined body would force a function
-        // matcher that nock then hands a "" actual body, mismatching.
-        if (def.body !== undefined) {
-          (next as { body: unknown }).body = makeVolatileBodyMatcher(
-            def.body,
-            volatileFields,
-            store,
-          );
+        // Keep nock's native body matching unless request-body fields actually
+        // need canonical matching.
+        //
+        // In particular, nock parses form-encoded actual bodies before invoking
+        // function matchers while recorder output keeps the expected body as a
+        // string, so an unnecessary matcher would compare different shapes.
+        // Undefined bodies must remain untouched too.
+        if (def.body !== undefined && hasRequestBodyFields) {
+          next.body = makeVolatileBodyMatcher(def.body, volatileFields, store);
         }
         return next;
       });

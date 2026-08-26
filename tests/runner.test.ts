@@ -1,17 +1,24 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import nock from "nock";
 
-import { replayCassette, stripPort } from "../src/core/runner.ts";
+import type { NockDefinition } from "../src/core/cassette.ts";
+import { recordCassette, replayCassette, stripPort } from "../src/core/runner.ts";
+import {
+  parseRedactConfig,
+  parseVolatileConfig,
+  type VolatileField,
+} from "../src/core/volatile.ts";
 
 let tmpDir: string;
 beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), "vcrkit-runner-"));
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   rmSync(tmpDir, { recursive: true, force: true });
 });
 
@@ -40,6 +47,115 @@ describe("stripPort", () => {
 });
 
 describe("replayCassette", () => {
+  const formBody = "username=test-user&password=secret";
+
+  function formDefinition(overrides: Partial<NockDefinition> = {}): NockDefinition {
+    return {
+      scope: "https://api.example.com",
+      method: "POST",
+      path: "/password",
+      body: formBody,
+      status: 200,
+      response: { ok: true },
+      ...overrides,
+    };
+  }
+
+  function writeCassette(name: string, definition = formDefinition()): string {
+    const cassettePath = join(tmpDir, `${name}.json`);
+    writeFileSync(cassettePath, JSON.stringify({ version: 1, definitions: [definition] }));
+    return cassettePath;
+  }
+
+  async function replay(
+    cassettePath: string,
+    fields: VolatileField[],
+    request: RequestInit = {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: formBody,
+    },
+  ): Promise<void> {
+    await replayCassette(
+      cassettePath,
+      fields,
+      async () => {
+        const response = await fetch("https://api.example.com/password", request);
+        expect(response.status).toBe(200);
+      },
+      { testName: "replay regression" },
+    );
+  }
+
+  it("records and replays a form body with response-only redaction", async () => {
+    const cassettePath = join(tmpDir, "recorded-form.json");
+    const fields = parseRedactConfig({ response: { body: ["accessToken"] } });
+    vi.spyOn(nock.recorder, "play").mockReturnValue([
+      {
+        scope: "https://api.example.com",
+        method: "POST",
+        path: "/password",
+        body: formBody,
+        status: 200,
+        response: { accessToken: "response-secret" },
+      },
+    ]);
+
+    await recordCassette(
+      cassettePath,
+      { scrubRules: [], volatileFields: fields, ignore: undefined },
+      async () => {},
+    );
+    await replay(cassettePath, fields);
+  });
+
+  it("replays a form body with response-only volatility", async () => {
+    const cassettePath = writeCassette("response-only-volatile");
+    await replay(cassettePath, parseVolatileConfig({ response: { body: ["requestId"] } }));
+  });
+
+  it("uses custom header matching and native form-body matching together", async () => {
+    const cassettePath = writeCassette(
+      "header-only-volatile",
+      formDefinition({
+        reqheaders: { "x-request-id": "<!volatile!header:x-request-id!0>" },
+      }),
+    );
+    const fields = parseVolatileConfig({ request: { headers: ["x-request-id"] } });
+
+    await replay(cassettePath, fields, {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        "x-request-id": crypto.randomUUID(),
+      },
+      body: formBody,
+    });
+  });
+
+  it("keeps custom matching for request-body fields", async () => {
+    const cassettePath = writeCassette(
+      "request-body-redaction",
+      formDefinition({ body: { password: "<!redact!body:password!0>", stable: "same" } }),
+    );
+    const fields = parseRedactConfig({ request: { body: ["password"] } });
+
+    await replay(cassettePath, fields, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ password: "different-secret", stable: "same" }),
+    });
+  });
+
+  it("does not install a body matcher for a bodyless request", async () => {
+    const cassettePath = writeCassette(
+      "bodyless",
+      formDefinition({ method: "GET", body: undefined }),
+    );
+    const fields = parseVolatileConfig({ response: { body: ["requestId"] } });
+    await replay(cassettePath, fields, {});
+  });
+
   it("serves a recorded interaction and matches by plain equality on the canonical header value", async () => {
     const cassettePath = join(tmpDir, "ok.json");
     writeFileSync(
