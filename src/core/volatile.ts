@@ -9,7 +9,7 @@
  * idempotency keys) are encoded and checkable in replay mode.
  */
 
-import type { NockDefinition } from "./cassette.ts";
+import type { HeadersLike, NockDefinition, NockRawHeaders } from "./cassette.ts";
 import { isPlainObject } from "./value.ts";
 
 export type VolatileEntry = string | { name: string; match: "loose" };
@@ -265,14 +265,16 @@ function canonicalizeOne(
   let body = def.body;
   let reqheaders = def.reqheaders;
   let response = def.response;
-  let rawHeaders: unknown = def.rawHeaders;
+  let rawHeaders = def.rawHeaders;
   for (const field of fields) {
     if (field.kind === "body") {
       body = rewriteBodyField(body, field, store);
     } else if (field.kind === "header") {
       reqheaders = rewriteHeaderField(reqheaders, field, store);
     } else if (field.kind === "response-header") {
-      rawHeaders = rewriteRawHeadersField(rawHeaders, field, store);
+      if (rawHeaders !== undefined) {
+        rawHeaders = rewriteHeaderMap(rawHeaders, field, store);
+      }
       response = rewriteEchoedHeaderField(response, field, store);
     } else {
       response = rewriteResponseField(response, field, store);
@@ -283,7 +285,7 @@ function canonicalizeOne(
     next.reqheaders = reqheaders;
   }
   if (rawHeaders !== undefined) {
-    next.rawHeaders = rawHeaders as never;
+    next.rawHeaders = rawHeaders;
   }
   return next;
 }
@@ -374,35 +376,6 @@ function rewriteResponseField(
   return walkRewrite(response, field, store, "response");
 }
 
-/**
- * Apply a header-deny-list field to response-side `rawHeaders`. nock emits
- * this as either an alternating `[k, v, k, v, …]` array or a
- * `Record<string, string | string[]>`; multi-valued headers (notably
- * `set-cookie`) routinely appear as an array of strings on the Record form.
- *
- * Uses a separate ordinal namespace from request headers.
- */
-function rewriteRawHeadersField(raw: unknown, field: VolatileField, store: OrdinalStore): unknown {
-  if (raw === undefined) {
-    return raw;
-  }
-  if (Array.isArray(raw)) {
-    const out: unknown[] = [...raw];
-    for (let i = 0; i + 1 < raw.length; i += 2) {
-      const k = raw[i];
-      const v = raw[i + 1];
-      if (typeof k === "string" && k.toLowerCase() === field.path && typeof v === "string") {
-        out[i + 1] = tokenizeHeaderValue(v, field, store);
-      }
-    }
-    return out;
-  }
-  if (isPlainObject(raw)) {
-    return rewriteHeaderMap(raw, field, store);
-  }
-  return raw;
-}
-
 function rewriteEchoedHeaderField(
   response: unknown,
   field: VolatileField,
@@ -411,7 +384,7 @@ function rewriteEchoedHeaderField(
   if (!isPlainObject(response) || !isPlainObject(response.headers)) {
     return response;
   }
-  const headers = response.headers as Record<string, unknown>;
+  const headers = response.headers;
   const rewritten = rewriteHeaderMap(headers, field, store);
   if (rewritten === headers) {
     return response;
@@ -420,12 +393,22 @@ function rewriteEchoedHeaderField(
 }
 
 function rewriteHeaderMap(
-  headers: Record<string, unknown>,
+  headers: NockRawHeaders,
   field: VolatileField,
   store: OrdinalStore,
-): Record<string, unknown> {
+): NockRawHeaders;
+function rewriteHeaderMap(
+  headers: HeadersLike,
+  field: VolatileField,
+  store: OrdinalStore,
+): HeadersLike;
+function rewriteHeaderMap(
+  headers: HeadersLike,
+  field: VolatileField,
+  store: OrdinalStore,
+): HeadersLike {
   let changed = false;
-  const out: Record<string, unknown> = {};
+  const out: HeadersLike = {};
   for (const [k, v] of Object.entries(headers)) {
     if (k.toLowerCase() !== field.path) {
       out[k] = v;

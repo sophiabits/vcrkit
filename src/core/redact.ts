@@ -286,7 +286,7 @@ function stripIgnoredHeaders(
     next.reqheaders = reqHeaders;
   }
   if (def.rawHeaders !== undefined) {
-    next.rawHeaders = stripRawHeaders(def.rawHeaders, customIgnoredResponseHeaders) as never;
+    next.rawHeaders = stripHeaderMap(def.rawHeaders, customIgnoredResponseHeaders);
   }
 
   // Heuristic for echo-style APIs (httpbin etc.) that surface the request's
@@ -295,45 +295,17 @@ function stripIgnoredHeaders(
   // every re-record. Only fires when response is a plain object with a
   // `headers` field shaped like a header map.
   if (isPlainObject(def.response) && isPlainObject(def.response.headers)) {
-    const cleanedHeaders = stripHeaderMap(
-      def.response.headers as Record<string, unknown>,
-      customIgnoredResponseHeaders,
-    );
+    const cleanedHeaders = stripHeaderMap(def.response.headers, customIgnoredResponseHeaders);
     next.response = { ...def.response, headers: cleanedHeaders };
   }
   return next;
 }
 
-/**
- * nock recorder emits rawHeaders as either an alternating `[k, v, k, v, …]`
- * array or a `Record<string, string>` depending on version/source. Handle both.
- * Return type is loose to accommodate both shapes; caller casts to `never`.
- */
-function stripRawHeaders(raw: unknown, customIgnoredResponseHeaders: ReadonlySet<string>): unknown {
-  if (Array.isArray(raw)) {
-    const out: string[] = [];
-    for (let i = 0; i + 1 < raw.length; i += 2) {
-      const k = raw[i];
-      if (
-        typeof k === "string" &&
-        !isIgnoredHeader(k, IGNORE_RES_HEADERS, customIgnoredResponseHeaders)
-      ) {
-        out.push(k, raw[i + 1]!);
-      }
-    }
-    return out;
-  }
-  if (isPlainObject(raw)) {
-    return stripHeaderMap(raw, customIgnoredResponseHeaders);
-  }
-  return raw;
-}
-
-function stripHeaderMap(
-  headers: Record<string, unknown>,
+function stripHeaderMap<T>(
+  headers: Record<string, T>,
   customIgnoredHeaders: ReadonlySet<string>,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
+): Record<string, T> {
+  const out: Record<string, T> = {};
   for (const [k, v] of Object.entries(headers)) {
     if (!isIgnoredHeader(k, IGNORE_RES_HEADERS, customIgnoredHeaders)) {
       out[k] = v;
