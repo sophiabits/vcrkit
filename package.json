@@ -1,6 +1,6 @@
 {
   "name": "vcrkit",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Zero-ceremony VCR (record/replay) HTTP tests on top of nock, with first-class secret loading and redaction.",
   "keywords": [
     "cassette",
