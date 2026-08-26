@@ -56,7 +56,7 @@ export async function readCassette(path: string): Promise<Cassette | null> {
       `vcrkit: cassette at ${path} is malformed — \`definitions\` is missing or not an array`,
     );
   }
-  return { version: CASSETTE_VERSION, definitions: raw.definitions as NockDefinition[] };
+  return { version: CASSETTE_VERSION, definitions: raw.definitions };
 }
 
 export async function writeCassette(path: string, cassette: Cassette): Promise<void> {
