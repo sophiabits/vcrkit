@@ -131,12 +131,29 @@ export interface ScrubResult {
   matches: number;
 }
 
+export interface IgnoreSideConfig {
+  headers?: string[];
+}
+
+export interface IgnoreConfig {
+  /** Request headers to omit from recorded cassettes. */
+  request?: IgnoreSideConfig;
+  /** Response headers to omit from recorded cassettes. */
+  response?: IgnoreSideConfig;
+}
+
 /**
  * Apply known-secret redaction: substitute every declared secret value with
  * its canonical replay form, plus drop legitimately-varying request headers.
  */
-export function scrubDefinitions(defs: NockDefinition[], rules: ScrubRule[]): ScrubResult {
-  const stripped = defs.map(stripIgnoredHeaders);
+export function scrubDefinitions(
+  defs: NockDefinition[],
+  rules: ScrubRule[],
+  ignore?: IgnoreConfig,
+): ScrubResult {
+  const requestHeaders = normalizeHeaders(ignore?.request?.headers);
+  const responseHeaders = normalizeHeaders(ignore?.response?.headers);
+  const stripped = defs.map((def) => stripIgnoredHeaders(def, requestHeaders, responseHeaders));
   const sorted = [...rules]
     .filter((r) => r.real !== "")
     .sort((a, b) => b.real.length - a.real.length);
@@ -253,19 +270,23 @@ function scrubString(input: string, rules: CompiledRules): WalkResult {
   return { value, matches };
 }
 
-function stripIgnoredHeaders(def: NockDefinition): NockDefinition {
+function stripIgnoredHeaders(
+  def: NockDefinition,
+  customIgnoredRequestHeaders: ReadonlySet<string>,
+  customIgnoredResponseHeaders: ReadonlySet<string>,
+): NockDefinition {
   const next: NockDefinition = { ...def };
   if (def.reqheaders) {
     const reqHeaders: Record<string, string> = {};
     for (const [k, v] of Object.entries(def.reqheaders)) {
-      if (!IGNORE_REQ_HEADERS.has(k.toLowerCase())) {
+      if (!isIgnoredHeader(k, IGNORE_REQ_HEADERS, customIgnoredRequestHeaders)) {
         reqHeaders[k] = v;
       }
     }
     next.reqheaders = reqHeaders;
   }
   if (def.rawHeaders !== undefined) {
-    next.rawHeaders = stripRawHeaders(def.rawHeaders) as never;
+    next.rawHeaders = stripRawHeaders(def.rawHeaders, customIgnoredResponseHeaders) as never;
   }
 
   // Heuristic for echo-style APIs (httpbin etc.) that surface the request's
@@ -274,7 +295,10 @@ function stripIgnoredHeaders(def: NockDefinition): NockDefinition {
   // every re-record. Only fires when response is a plain object with a
   // `headers` field shaped like a header map.
   if (isPlainObject(def.response) && isPlainObject(def.response.headers)) {
-    const cleanedHeaders = stripHeaderMap(def.response.headers as Record<string, unknown>);
+    const cleanedHeaders = stripHeaderMap(
+      def.response.headers as Record<string, unknown>,
+      customIgnoredResponseHeaders,
+    );
     next.response = { ...def.response, headers: cleanedHeaders };
   }
   return next;
@@ -285,29 +309,48 @@ function stripIgnoredHeaders(def: NockDefinition): NockDefinition {
  * array or a `Record<string, string>` depending on version/source. Handle both.
  * Return type is loose to accommodate both shapes; caller casts to `never`.
  */
-function stripRawHeaders(raw: unknown): unknown {
+function stripRawHeaders(raw: unknown, customIgnoredResponseHeaders: ReadonlySet<string>): unknown {
   if (Array.isArray(raw)) {
     const out: string[] = [];
     for (let i = 0; i + 1 < raw.length; i += 2) {
       const k = raw[i];
-      if (typeof k === "string" && !IGNORE_RES_HEADERS.has(k.toLowerCase())) {
+      if (
+        typeof k === "string" &&
+        !isIgnoredHeader(k, IGNORE_RES_HEADERS, customIgnoredResponseHeaders)
+      ) {
         out.push(k, raw[i + 1]!);
       }
     }
     return out;
   }
   if (isPlainObject(raw)) {
-    return stripHeaderMap(raw);
+    return stripHeaderMap(raw, customIgnoredResponseHeaders);
   }
   return raw;
 }
 
-function stripHeaderMap(headers: Record<string, unknown>): Record<string, unknown> {
+function stripHeaderMap(
+  headers: Record<string, unknown>,
+  customIgnoredHeaders: ReadonlySet<string>,
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(headers)) {
-    if (!IGNORE_RES_HEADERS.has(k.toLowerCase())) {
+    if (!isIgnoredHeader(k, IGNORE_RES_HEADERS, customIgnoredHeaders)) {
       out[k] = v;
     }
   }
   return out;
+}
+
+function isIgnoredHeader(
+  header: string,
+  builtInHeaders: ReadonlySet<string>,
+  customIgnoredHeaders: ReadonlySet<string>,
+): boolean {
+  const normalized = header.toLowerCase();
+  return builtInHeaders.has(normalized) || customIgnoredHeaders.has(normalized);
+}
+
+function normalizeHeaders(headers: ReadonlyArray<string> | undefined): ReadonlySet<string> {
+  return new Set((headers ?? []).map((header) => header.toLowerCase()));
 }

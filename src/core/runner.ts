@@ -4,7 +4,7 @@ import nock from "nock";
 
 import { type Cassette, type NockDefinition, readCassette, writeCassette } from "./cassette.ts";
 import { type ActualRequest, diagnoseMismatch, formatMismatch } from "./mismatch.ts";
-import { scrubDefinitions, type ScrubRule } from "./redact.ts";
+import { type IgnoreConfig, scrubDefinitions, type ScrubRule } from "./redact.ts";
 import { makeUserFacingError } from "./user-facing-error.ts";
 import {
   canonicalizeDefinitions,
@@ -23,6 +23,12 @@ export interface RecordResult {
   redacted: number;
 }
 
+export interface RecordOptions {
+  scrubRules: ScrubRule[];
+  volatileFields: VolatileField[];
+  ignore: IgnoreConfig | undefined;
+}
+
 /**
  * Run a test body in record mode.
  *
@@ -31,8 +37,7 @@ export interface RecordResult {
  */
 export async function recordCassette(
   cassettePath: string,
-  scrubRules: ScrubRule[],
-  volatileFields: VolatileField[],
+  options: RecordOptions,
   body: (handle: RecordHandle) => Promise<void>,
 ): Promise<RecordResult> {
   nock.cleanAll();
@@ -79,9 +84,9 @@ export async function recordCassette(
       //   2. canonicalize after → volatile + redact fields become ordinal tokens.
       //      isCanonical() in volatile.ts skips values already placeholderized
       //      so we don't relabel a known secret into a wildcard.
-      const scrubbed = scrubDefinitions(defs, scrubRules);
+      const scrubbed = scrubDefinitions(defs, options.scrubRules, options.ignore);
       redacted = scrubbed.matches;
-      const canonicalized = canonicalizeDefinitions(scrubbed.defs, volatileFields);
+      const canonicalized = canonicalizeDefinitions(scrubbed.defs, options.volatileFields);
       await writeCassette(cassettePath, { version: 1, definitions: canonicalized });
     }
   } finally {

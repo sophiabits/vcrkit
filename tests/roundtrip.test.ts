@@ -82,6 +82,45 @@ describe("scrubDefinitions", () => {
     expect(matches).toBe(0);
   });
 
+  it("strips configured headers from requests and responses case-insensitively", () => {
+    const defs: NockDefinition[] = [
+      {
+        scope: "https://shop.example.com",
+        path: "/",
+        reqheaders: {
+          "X-Request-Noise": "request-noise",
+          "x-shopify-complexity-score": "kept-on-request",
+          "x-keep": "request",
+        },
+        rawHeaders: {
+          "x-shopify-complexity-score": "response-noise",
+          "x-request-noise": "kept-on-response",
+          "x-keep": "response",
+        } as never,
+        response: {
+          headers: {
+            "X-SHOPIFY-COMPLEXITY-SCORE": "echo-noise",
+            "x-keep": "echo",
+          },
+        },
+      },
+    ];
+
+    const { defs: out } = scrubDefinitions(defs, [], {
+      request: { headers: ["x-request-noise"] },
+      response: { headers: ["x-shopify-complexity-score"] },
+    });
+    expect(out[0]?.reqheaders).toEqual({
+      "x-shopify-complexity-score": "kept-on-request",
+      "x-keep": "request",
+    });
+    expect(out[0]?.rawHeaders).toEqual({
+      "x-request-noise": "kept-on-response",
+      "x-keep": "response",
+    });
+    expect(out[0]?.response).toEqual({ headers: { "x-keep": "echo" } });
+  });
+
   it("strips noisy response headers from rawHeaders (Record form)", () => {
     const defs: NockDefinition[] = [
       {

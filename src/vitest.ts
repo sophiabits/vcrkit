@@ -1,7 +1,7 @@
 import { beforeAll, test } from "vitest";
 
 import { cassettePathFor } from "./core/cassette.ts";
-import type { ScrubRule } from "./core/redact.ts";
+import type { IgnoreConfig, ScrubRule } from "./core/redact.ts";
 import { recordCassette, replayCassette } from "./core/runner.ts";
 import { readVcrMode, withVcrLock } from "./core/runtime.ts";
 import { getReplayValue, resolveSecretEntry } from "./core/secrets.ts";
@@ -19,9 +19,10 @@ export interface VcrConfig {
   secrets?: Record<string, SecretEntry>;
   redact?: RedactConfig;
   volatile?: VolatileConfig;
+  ignore?: IgnoreConfig;
 }
 
-export type { RedactConfig, VolatileConfig, VolatileEntry };
+export type { IgnoreConfig, RedactConfig, VolatileConfig, VolatileEntry };
 
 export interface VcrTestContext<S extends Record<string, string> = Record<string, string>> {
   secrets: S;
@@ -38,8 +39,15 @@ export type SecretsOf<C extends VcrConfig> = C extends {
   ? { [K in keyof S]: string }
   : Record<string, string>;
 
-export interface VcrFixture<S extends Record<string, string> = Record<string, string>> {
+export interface VcrTestRegistrar<S extends Record<string, string> = Record<string, string>> {
   (name: string, fn: VcrFn<S>): void;
+}
+
+export interface VcrFixture<
+  S extends Record<string, string> = Record<string, string>,
+> extends VcrTestRegistrar<S> {
+  readonly skip: VcrTestRegistrar<S>;
+  readonly only: VcrTestRegistrar<S>;
   /** Non-enumerable introspection handle for the `vcrkit` bin. */
   readonly _config: VcrConfig;
 }
@@ -134,19 +142,27 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
 
   let beforeAllRegistered = false;
 
-  const vcr = ((name: string, fn: VcrFn): void => {
+  type Modifier = "normal" | "skip" | "only";
+
+  const register = (modifier: Modifier, name: string, fn: VcrFn): void => {
     if (mode === null) {
       test.skip(`${name} ↓ run via 'vcrkit replay'`, () => {});
       return;
     }
 
     // Resolve secrets in beforeAll so provider failures stop the suite before recording.
-    if (mode === "record" && !beforeAllRegistered && secretEntries.length > 0) {
+    if (
+      modifier !== "skip" &&
+      mode === "record" &&
+      !beforeAllRegistered &&
+      secretEntries.length > 0
+    ) {
       beforeAllRegistered = true;
       beforeAll(resolveRealSecrets);
     }
 
-    test(name, async (taskCtx) => {
+    const vitestTest = modifier === "skip" ? test.skip : modifier === "only" ? test.only : test;
+    vitestTest(name, async (taskCtx) => {
       await withVcrLock(name, async () => {
         const filepath = taskCtx.task.file?.filepath ?? "";
         const suitePath = describeStackOf(taskCtx.task);
@@ -170,8 +186,11 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
         if (mode === "record") {
           const result = await recordCassette(
             cassettePath,
-            scrubRules,
-            volatileFields,
+            {
+              scrubRules,
+              volatileFields,
+              ignore: config.ignore,
+            },
             async ({ onCleanup }) => {
               await fn({ secrets: realSecrets, onCleanup });
             },
@@ -191,8 +210,16 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
         }
       });
     });
+  };
+
+  const vcr = ((name: string, fn: VcrFn): void => {
+    register("normal", name, fn);
   }) as VcrFixture<SecretsOf<C>>;
 
+  Object.defineProperties(vcr, {
+    skip: { value: (name: string, fn: VcrFn) => register("skip", name, fn) },
+    only: { value: (name: string, fn: VcrFn) => register("only", name, fn) },
+  });
   Object.defineProperty(vcr, "_config", { value: config, enumerable: false });
   return vcr;
 }
