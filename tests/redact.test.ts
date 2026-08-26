@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { NockDefinition } from "../src/core/cassette.ts";
+import type { NockDefinition, NockRawHeaders } from "../src/core/cassette.ts";
 import { scrubDefinitions } from "../src/core/redact.ts";
 import {
   BUILT_IN_REDACT_HEADERS,
@@ -153,10 +153,10 @@ describe("response-side header deny-list", () => {
       rawHeaders: {
         "content-type": "application/json",
         "set-cookie": ["session=abc123def456; Path=/", "csrf=zzz; Path=/; HttpOnly"],
-      } as never,
+      },
     };
     const out = canonicalizeDefinitions([def], parseRedactConfig(undefined));
-    const raw = out[0]!.rawHeaders as unknown as Record<string, unknown>;
+    const raw = out[0]!.rawHeaders as NockRawHeaders;
     const cookies = raw["set-cookie"] as string[];
     expect(cookies).toHaveLength(2);
     for (const c of cookies) {
@@ -166,29 +166,6 @@ describe("response-side header deny-list", () => {
       expect(parseVolatileToken(c)?.path).toBe("set-cookie");
     }
     expect(raw["content-type"]).toBe("application/json");
-  });
-
-  it("tokenizes www-authenticate in rawHeaders (array form)", () => {
-    const def: NockDefinition = {
-      scope: "https://api.example.com",
-      path: "/protected",
-      status: 401,
-      response: "",
-      rawHeaders: [
-        "Content-Type",
-        "text/plain",
-        "WWW-Authenticate",
-        'Bearer realm="api", error="invalid_token", token="leak-me-please"',
-      ],
-    };
-    const out = canonicalizeDefinitions([def], parseRedactConfig(undefined));
-    const raw = out[0]!.rawHeaders as string[];
-    expect(raw[0]).toBe("Content-Type");
-    expect(raw[1]).toBe("text/plain");
-    expect(raw[2]).toBe("WWW-Authenticate");
-    expect(raw[3]).not.toContain("leak-me-please");
-    expect(parseVolatileToken(raw[3])?.source).toBe("redact");
-    expect(parseVolatileToken(raw[3])?.path).toBe("www-authenticate");
   });
 
   it("tokenizes authorization echoed in response.headers (httpbin-style)", () => {
@@ -218,13 +195,13 @@ describe("response-side header deny-list", () => {
       status: 200,
       response: { ok: true },
       reqheaders: { "x-tenant-token": "request-value" },
-      rawHeaders: { "x-tenant-token": "tnt_live_super_secret" } as never,
+      rawHeaders: { "x-tenant-token": "tnt_live_super_secret" },
     };
     const out = canonicalizeDefinitions(
       [def],
       parseRedactConfig({ response: { headers: ["x-tenant-token"] } }),
     );
-    const raw = out[0]!.rawHeaders as unknown as Record<string, string>;
+    const raw = out[0]!.rawHeaders as NockRawHeaders;
     expect(raw["x-tenant-token"]).not.toContain("super_secret");
     expect(parseVolatileToken(raw["x-tenant-token"])?.path).toBe("x-tenant-token");
     expect(out[0]!.reqheaders?.["x-tenant-token"]).toBe("request-value");
@@ -240,11 +217,11 @@ describe("response-side header deny-list", () => {
       status: 200,
       response: {},
       reqheaders: { authorization: "Bearer same-token" },
-      rawHeaders: { authorization: "Bearer same-token" } as never,
+      rawHeaders: { authorization: "Bearer same-token" },
     };
     const out = canonicalizeDefinitions([def], parseRedactConfig(undefined));
     const reqAuth = (out[0]!.reqheaders as Record<string, string>).authorization;
-    const resAuth = (out[0]!.rawHeaders as unknown as Record<string, string>).authorization;
+    const resAuth = (out[0]!.rawHeaders as NockRawHeaders).authorization;
     expect(parseVolatileToken(reqAuth)?.kind).toBe("header");
     expect(parseVolatileToken(resAuth)?.kind).toBe("response-header");
   });

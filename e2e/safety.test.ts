@@ -54,6 +54,31 @@ describe("vcrkit record — vitest context guard (bin/vcrkit.ts:35)", () => {
 });
 
 describe("vcrkit record — fixture context", () => {
+  it("supports skip and only modifiers", async () => {
+    const project = mkdtempSync(join(tmpdir(), "vcrkit-modifiers-"));
+    temporaryDirectories.push(project);
+    const vitestModule = pathToFileURL(resolve(dirname(VCRKIT_BIN), "../vitest.js")).href;
+    writeFileSync(
+      join(project, "modifiers.vcr.test.ts"),
+      [
+        `import { defineVcr } from ${JSON.stringify(vitestModule)};`,
+        "const vcr = defineVcr({});",
+        'vcr("not focused", () => { throw new Error("normal VCR test ran"); });',
+        'vcr.skip("explicitly skipped", () => { throw new Error("skipped VCR test ran"); });',
+        'vcr.only("focused", () => {});',
+      ].join("\n"),
+    );
+
+    const result = await runVcrkit(["record"], {
+      cwd: project,
+      env: { VITEST: undefined, VITEST_WORKER_ID: undefined },
+      timeoutMs: 15_000,
+    });
+
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stderr).not.toContain("VCR test ran");
+  });
+
   it("injects an empty secrets object when no providers are configured", async () => {
     const project = mkdtempSync(join(tmpdir(), "vcrkit-no-secrets-"));
     temporaryDirectories.push(project);

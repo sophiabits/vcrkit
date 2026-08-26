@@ -1,7 +1,7 @@
 import { beforeAll, test } from "vitest";
 
 import { cassettePathFor } from "./core/cassette.ts";
-import type { ScrubRule } from "./core/redact.ts";
+import type { IgnoreConfig, ScrubRule } from "./core/redact.ts";
 import { recordCassette, replayCassette } from "./core/runner.ts";
 import { readVcrMode, withVcrLock } from "./core/runtime.ts";
 import { getReplayValue, resolveSecretEntry } from "./core/secrets.ts";
@@ -19,9 +19,10 @@ export interface VcrConfig {
   secrets?: Record<string, SecretEntry>;
   redact?: RedactConfig;
   volatile?: VolatileConfig;
+  ignore?: IgnoreConfig;
 }
 
-export type { RedactConfig, VolatileConfig, VolatileEntry };
+export type { IgnoreConfig, RedactConfig, VolatileConfig, VolatileEntry };
 
 export interface VcrTestContext<S extends Record<string, string> = Record<string, string>> {
   secrets: S;
@@ -38,8 +39,15 @@ export type SecretsOf<C extends VcrConfig> = C extends {
   ? { [K in keyof S]: string }
   : Record<string, string>;
 
-export interface VcrFixture<S extends Record<string, string> = Record<string, string>> {
+export interface VcrTestRegistrar<S extends Record<string, string> = Record<string, string>> {
   (name: string, fn: VcrFn<S>): void;
+}
+
+export interface VcrFixture<
+  S extends Record<string, string> = Record<string, string>,
+> extends VcrTestRegistrar<S> {
+  readonly skip: VcrTestRegistrar<S>;
+  readonly only: VcrTestRegistrar<S>;
   /** Non-enumerable introspection handle for the `vcrkit` bin. */
   readonly _config: VcrConfig;
 }
@@ -98,55 +106,54 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
     }
   }
 
-  // Real values, populated only in record by the suite beforeAll below. Start
-  // with the valid secret-free context: when no providers are configured there
-  // is no beforeAll preflight, but record and replay must still expose `{}`.
-  let realSecrets: Record<string, string> = {};
-  let scrubRules: ScrubRule[] = [];
+  // Real values, populated only in record by the suite beforeAll below.
+  const realSecrets: Record<string, string> = {};
+  const scrubRules: ScrubRule[] = [];
 
   async function resolveRealSecrets(): Promise<void> {
-    // Providers are independent network calls (GCP / AWS / env / user-defined).
-    // Fire them concurrently — total wall time becomes max(provider) rather
-    // than sum(provider). Order is preserved by mapping in-place.
     const results = await Promise.all(
-      secretEntries.map(([k, entry]) => resolveSecretEntry(entry, k)),
+      secretEntries.map(([key, entry]) =>
+        resolveSecretEntry(entry, key).then((value) => [key, value] as const),
+      ),
     );
-    const real: Record<string, string> = {};
-    const rules: ScrubRule[] = [];
-    for (let i = 0; i < secretEntries.length; i++) {
-      const [k] = secretEntries[i]!;
-      const { resolved, replay } = results[i]!;
+    for (const [key, { resolved, replay }] of results) {
       if (resolved === "") {
         throw makeUserFacingError(
-          `vcrkit: secret '${k}' resolved to an empty value; refusing to record because ` +
+          `vcrkit: secret '${key}' resolved to an empty value; refusing to record because ` +
             `an empty secret cannot be scrubbed safely. Check the provider, or remove ` +
-            `'${k}' from the secrets config if it is not actually sensitive.`,
+            `'${key}' from the secrets config if it is not actually sensitive.`,
         );
       }
-      real[k] = resolved;
-      rules.push({ real: resolved, canonical: replay });
+      realSecrets[key] = resolved;
+      scrubRules.push({ real: resolved, canonical: replay });
     }
-    realSecrets = real;
-    scrubRules = rules;
   }
 
   const volatileFields: VolatileField[] = compileVolatileFields(config.volatile, config.redact);
 
   let beforeAllRegistered = false;
 
-  const vcr = ((name: string, fn: VcrFn): void => {
+  type Modifier = "normal" | "skip" | "only";
+
+  const register = (modifier: Modifier, name: string, fn: VcrFn): void => {
     if (mode === null) {
       test.skip(`${name} ↓ run via 'vcrkit replay'`, () => {});
       return;
     }
 
     // Resolve secrets in beforeAll so provider failures stop the suite before recording.
-    if (mode === "record" && !beforeAllRegistered && secretEntries.length > 0) {
+    if (
+      modifier !== "skip" &&
+      mode === "record" &&
+      !beforeAllRegistered &&
+      secretEntries.length > 0
+    ) {
       beforeAllRegistered = true;
       beforeAll(resolveRealSecrets);
     }
 
-    test(name, async (taskCtx) => {
+    const vitestTest = modifier === "skip" ? test.skip : modifier === "only" ? test.only : test;
+    vitestTest(name, async (taskCtx) => {
       await withVcrLock(name, async () => {
         const filepath = taskCtx.task.file?.filepath ?? "";
         const suitePath = describeStackOf(taskCtx.task);
@@ -170,8 +177,11 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
         if (mode === "record") {
           const result = await recordCassette(
             cassettePath,
-            scrubRules,
-            volatileFields,
+            {
+              scrubRules,
+              volatileFields,
+              ignore: config.ignore,
+            },
             async ({ onCleanup }) => {
               await fn({ secrets: realSecrets, onCleanup });
             },
@@ -184,15 +194,23 @@ export function defineVcr<const C extends VcrConfig>(config: C): VcrFixture<Secr
             cassettePath,
             volatileFields,
             async () => {
-              await fn({ secrets: replaySecrets as never, onCleanup: noop });
+              await fn({ secrets: replaySecrets, onCleanup: noop });
             },
             { testName: name },
           );
         }
       });
     });
+  };
+
+  const vcr = ((name: string, fn: VcrFn): void => {
+    register("normal", name, fn);
   }) as VcrFixture<SecretsOf<C>>;
 
+  Object.defineProperties(vcr, {
+    skip: { value: (name: string, fn: VcrFn) => register("skip", name, fn) },
+    only: { value: (name: string, fn: VcrFn) => register("only", name, fn) },
+  });
   Object.defineProperty(vcr, "_config", { value: config, enumerable: false });
   return vcr;
 }

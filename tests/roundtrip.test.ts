@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { NockDefinition } from "../src/core/cassette.ts";
+import type { NockDefinition, NockRawHeaders } from "../src/core/cassette.ts";
 import { BUILT_IN_IGNORED_HEADERS, scrubDefinitions } from "../src/core/redact.ts";
 
 let tmpDir: string;
@@ -26,7 +26,7 @@ describe("scrubDefinitions", () => {
         scope: "https://api.example.com",
         path: "/",
         reqheaders: { ...noisyHeaders, "x-keep": "request" },
-        rawHeaders: { ...noisyHeaders, "x-keep": "response" } as never,
+        rawHeaders: { ...noisyHeaders, "x-keep": "response" },
         response: { headers: { ...noisyHeaders, "x-keep": "echo" } },
       },
     ];
@@ -82,13 +82,50 @@ describe("scrubDefinitions", () => {
     expect(matches).toBe(0);
   });
 
+  it("strips configured headers from requests and responses case-insensitively", () => {
+    const defs: NockDefinition[] = [
+      {
+        scope: "https://shop.example.com",
+        path: "/",
+        reqheaders: {
+          "X-Request-Noise": "request-noise",
+          "x-shopify-complexity-score": "kept-on-request",
+          "x-keep": "request",
+        },
+        rawHeaders: {
+          "x-shopify-complexity-score": "response-noise",
+          "x-request-noise": "kept-on-response",
+          "x-keep": "response",
+        },
+        response: {
+          headers: {
+            "X-SHOPIFY-COMPLEXITY-SCORE": "echo-noise",
+            "x-keep": "echo",
+          },
+        },
+      },
+    ];
+
+    const { defs: out } = scrubDefinitions(defs, [], {
+      request: { headers: ["x-request-noise"] },
+      response: { headers: ["x-shopify-complexity-score"] },
+    });
+    expect(out[0]?.reqheaders).toEqual({
+      "x-shopify-complexity-score": "kept-on-request",
+      "x-keep": "request",
+    });
+    expect(out[0]?.rawHeaders).toEqual({
+      "x-request-noise": "kept-on-response",
+      "x-keep": "response",
+    });
+    expect(out[0]?.response).toEqual({ headers: { "x-keep": "echo" } });
+  });
+
   it("strips noisy response headers from rawHeaders (Record form)", () => {
     const defs: NockDefinition[] = [
       {
         scope: "https://api.example.com",
         path: "/",
-        // nock 14 typically emits a Record here. Cast through `never` to
-        // bypass the upstream type that still says `string[]`.
         rawHeaders: {
           "content-type": "application/json",
           date: "Sun, 31 May 2026 05:00:30 GMT",
@@ -96,33 +133,12 @@ describe("scrubDefinitions", () => {
           "x-amzn-trace-id": "Root=1-abc",
           "cf-ray": "9z9z",
           "x-rate-limit-remaining": "99",
-        } as never,
+        },
       },
     ];
     const { defs: out } = scrubDefinitions(defs, []);
-    const stripped = out[0]!.rawHeaders as unknown as Record<string, string>;
+    const stripped = out[0]!.rawHeaders as NockRawHeaders;
     expect(Object.keys(stripped).sort()).toEqual(["content-type", "x-rate-limit-remaining"]);
-  });
-
-  it("strips noisy response headers from rawHeaders (array form)", () => {
-    const defs: NockDefinition[] = [
-      {
-        scope: "https://api.example.com",
-        path: "/",
-        rawHeaders: [
-          "content-type",
-          "application/json",
-          "Date",
-          "Sun, 31 May 2026 05:00:30 GMT",
-          "X-Amzn-Trace-Id",
-          "Root=1-abc",
-          "X-Custom",
-          "keep",
-        ],
-      },
-    ];
-    const { defs: out } = scrubDefinitions(defs, []);
-    expect(out[0]!.rawHeaders).toEqual(["content-type", "application/json", "X-Custom", "keep"]);
   });
 
   it("strips ignored headers from response.headers (echo-style APIs)", () => {

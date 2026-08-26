@@ -63,6 +63,18 @@ pnpm vcr:replay
 
 Running a regular `vitest` invocation will skip execution of VCRs.
 
+VCR tests support Vitest's familiar focus and skip modifiers:
+
+```typescript
+vcr.skip("temporarily disabled", async () => {
+  // ...
+});
+
+vcr.only("run just this VCR test", async () => {
+  // ...
+});
+```
+
 ## Usage
 
 ### Secrets
@@ -209,6 +221,21 @@ Field name matching works at arbitrary depth, so all of the following `cvc` fiel
     }
   }
 }
+```
+
+You can add API-specific headers to the built-in ignore list. Names are case-insensitive and the configured headers are omitted from both requests and responses:
+
+```typescript
+const vcr = defineVcr({
+  ignore: {
+    request: {
+      headers: ["x-timing"],
+    },
+    response: {
+      headers: ["x-shopify-complexity-score"],
+    },
+  },
+});
 ```
 
 ### Volatile fields

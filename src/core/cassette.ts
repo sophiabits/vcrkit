@@ -11,6 +11,10 @@ export interface Cassette {
 
 export const CASSETTE_VERSION = 1 as const;
 
+export type HeadersLike = Record<string, unknown>;
+
+export type NockRawHeaders = Record<string, string | string[]>;
+
 /**
  * Shape of an entry from `nock.recorder.play()` with `output_objects: true`.
  * Kept loose — nock's own typing is too narrow for the response field.
@@ -23,7 +27,7 @@ export interface NockDefinition {
   body?: unknown;
   response?: unknown;
   reqheaders?: Record<string, string>;
-  rawHeaders?: string[];
+  rawHeaders?: NockRawHeaders;
   [key: string]: unknown;
 }
 
