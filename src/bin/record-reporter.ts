@@ -7,7 +7,7 @@
  * "changed lines" when the cassette is materially the same.
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, type Stats } from "node:fs";
 import { join, relative } from "node:path";
 
 import { isPlainObject } from "../core/value.ts";
@@ -145,7 +145,7 @@ function walk(dir: string, visit: (path: string) => void): void {
       continue;
     }
     const full = join(dir, name);
-    let stats;
+    let stats: Stats;
     try {
       stats = statSync(full);
     } catch {
