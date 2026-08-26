@@ -89,9 +89,79 @@ describe("diagnoseMismatch — closest pick", () => {
     expect(report.closest?.cassetteIndex).toBe(2);
     expect(report.closest?.differences).toHaveLength(0);
   });
+
+  it("does not report a URL difference solely for an explicit default port", () => {
+    const definition: NockDefinition = {
+      scope: "https://rye-test-store.myshopify.com:443",
+      method: "POST",
+      path: "/password",
+      body: { password: "secret" },
+    };
+    const report = diagnose([definition], {
+      method: "POST",
+      url: "https://rye-test-store.myshopify.com/password",
+      body: definition.body,
+    });
+
+    expect(report.closest?.differences).toEqual([]);
+  });
+
+  it("continues to report a non-default port difference", () => {
+    const definition: NockDefinition = {
+      scope: "https://example.com:8443",
+      method: "GET",
+      path: "/status",
+    };
+    const report = diagnose([definition], {
+      method: "GET",
+      url: "https://example.com/status",
+      body: undefined,
+    });
+
+    expect(report.closest?.differences).toContainEqual<FieldDiff>({
+      kind: "url",
+      recorded: "https://example.com:8443/status",
+      actual: "https://example.com/status",
+    });
+  });
 });
 
 describe("diagnoseMismatch — body diff walking", () => {
+  it.each([
+    ["", undefined],
+    [undefined, ""],
+  ])("treats an empty body and an omitted body as equivalent", (recorded, actual) => {
+    const definition: NockDefinition = {
+      scope: "https://example.com",
+      method: "GET",
+      path: "/",
+      body: recorded,
+    };
+    const report = diagnose([definition], {
+      method: "GET",
+      url: "https://example.com/",
+      body: actual,
+    });
+
+    expect(report.closest?.differences).toEqual([]);
+  });
+
+  it("keeps a JSON-encoded empty string distinct from an omitted body", () => {
+    const definition: NockDefinition = {
+      scope: "https://example.com",
+      method: "POST",
+      path: "/",
+      body: '""',
+    };
+    const report = diagnose([definition], {
+      method: "POST",
+      url: "https://example.com/",
+      body: undefined,
+    });
+
+    expect(report.closest?.differences).not.toEqual([]);
+  });
+
   it("surfaces a nested body field difference with dotted path", () => {
     const candidates: NockDefinition[] = [shopifyDef("gid://shopify/Cart/abc123")];
     const report = diagnose(candidates, {

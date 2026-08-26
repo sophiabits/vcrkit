@@ -143,18 +143,27 @@ function diffAll(def: NockDefinition, request: ActualRequest): FieldDiff[] {
     diffs.push({ kind: "method", recorded: recordedMethod, actual: actualMethod });
   }
 
-  const recordedUrl = `${def.scope ?? ""}${def.path ?? ""}`;
-  if (stripQuery(recordedUrl) !== stripQuery(request.url)) {
-    diffs.push({ kind: "url", recorded: recordedUrl, actual: request.url });
+  const recordedUrl = normalizeUrl(`${def.scope ?? ""}${def.path ?? ""}`);
+  const actualUrl = normalizeUrl(request.url);
+  if (stripQuery(recordedUrl) !== stripQuery(actualUrl)) {
+    diffs.push({ kind: "url", recorded: recordedUrl, actual: actualUrl });
   } else {
     // Paths match modulo the query string — surface per-parameter diffs
     // rather than going silent on what's actually different.
-    diffQuery(extractQuery(recordedUrl), extractQuery(request.url), diffs);
+    diffQuery(extractQuery(recordedUrl), extractQuery(actualUrl), diffs);
   }
 
   diffBodies(parseBody(def.body), parseBody(request.body), "", diffs);
   diffHeaders(def.reqheaders, request.headers, diffs);
   return diffs;
+}
+
+function normalizeUrl(url: string): string {
+  try {
+    return new URL(url).href;
+  } catch {
+    return url;
+  }
 }
 
 /**
@@ -374,6 +383,12 @@ function lowercaseKeys(obj: Record<string, string | string[]>): Record<string, s
 }
 
 function parseBody(body: unknown): unknown {
+  // nock treats its recorder's empty-body sentinel and an omitted request body
+  // as equivalent. Normalize before JSON parsing so a JSON-encoded empty string
+  // (`'""'`) remains a real body value.
+  if (body === "") {
+    return undefined;
+  }
   if (typeof body !== "string") {
     return body;
   }
